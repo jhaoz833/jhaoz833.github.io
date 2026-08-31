@@ -102,7 +102,7 @@ export async function startDeviceLogin(): Promise<DeviceSession> {
       body: new URLSearchParams({ client_id: CLIENT_ID, scope: "public_repo" }),
     });
   } catch {
-    throw new Error("网络不通，请稍后再试（GitHub 暂时连不上）");
+    throw new Error("你的网络环境暂不支持此登录方式，请用下方备用方式登录");
   }
   if (!res.ok) throw new Error(`无法发起登录（${res.status}），请稍后再试`);
   const j = await res.json();
