@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import LoginPanel from "@/components/LoginPanel";
+import IslandStudio from "@/components/IslandStudio";
 import {
   authReady,
   getAuthSnapshot,
@@ -88,6 +89,9 @@ export default function IslandPage() {
               退出登陆
             </button>
           </motion.section>
+
+          {/* 专属小岛装修 */}
+          <IslandStudio seed={me.login} />
 
           {/* 我赞过的 */}
           <section className="mt-8">

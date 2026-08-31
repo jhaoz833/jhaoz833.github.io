@@ -131,6 +131,36 @@ body {
   animation: bob 2s ease-in-out infinite;
 }
 
+/* 小岛装修动画 */
+@keyframes isle-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.isle-orbit {
+  transform-box: view-box;
+  transform-origin: 160px 118px;
+  animation: isle-spin 16s linear infinite;
+}
+.isle-pet {
+  transform-box: view-box;
+  transform-origin: 160px 118px;
+  animation: isle-spin 10s linear infinite reverse;
+}
+@keyframes isle-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(14px); }
+}
+.isle-cloud { animation: isle-drift 9s ease-in-out infinite; }
+@keyframes isle-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.15; }
+}
+.isle-beam { animation: isle-glow 3.2s ease-in-out infinite; }
+.isle-window { animation: isle-glow 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .isle-orbit, .isle-pet, .isle-cloud, .isle-beam, .isle-window { animation: none; }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }
