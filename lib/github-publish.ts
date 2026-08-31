@@ -67,7 +67,7 @@ export async function publishPost(opts: {
   }
 
   // 2. posts.json 追加
-  const file = await ghFetch(`data/posts.json?ref=${BRANCH}`, token);
+  const file = await ghFetch(`${API}/data/posts.json?ref=${BRANCH}`, token);
   const posts = JSON.parse(
     new TextDecoder().decode(Uint8Array.from(atob(file.content.replace(/\n/g, "")), (c) => c.charCodeAt(0)))
   ) as Post[];
