@@ -3,6 +3,26 @@ import type { IslandConfig } from "@/components/IslandAvatar";
 
 const CONFIG_KEY = "fudao-island-config";
 const FOLLOW_KEY = "fudao-island-follow";
+const POS_KEY = "fudao-island-pos";
+
+export type IslandPos = { x: number; y: number };
+
+export function loadIslandPos(): IslandPos | null {
+  try {
+    const raw = localStorage.getItem(POS_KEY);
+    if (raw) {
+      const p = JSON.parse(raw) as IslandPos;
+      if (typeof p.x === "number" && typeof p.y === "number") return p;
+    }
+  } catch {}
+  return null;
+}
+
+export function saveIslandPos(pos: IslandPos) {
+  try {
+    localStorage.setItem(POS_KEY, JSON.stringify(pos));
+  } catch {}
+}
 
 export function loadIslandConfig(): IslandConfig | null {
   try {
