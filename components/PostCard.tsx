@@ -60,7 +60,11 @@ export default function PostCard({
     setLikeBusy(true);
     setLikeError("");
     try {
-      const r = await toggleHeart(auth.token, thread.nodeId, thread.number);
+      const r = await toggleHeart(
+        auth.token,
+        thread.number,
+        auth.me?.login ?? ""
+      );
       if (r === "liked") {
         setLikeDelta((v) => v + 1);
         recordMyLike(post.id);

@@ -18,36 +18,48 @@ async function gql<T>(token: string, query: string, variables: object): Promise<
   return j.data as T;
 }
 
-// 返回 "liked"（点亮）或 "unliked"（取消）
+// 返回 "liked"（点亮）或 "unliked"（取消）。
+// 用 REST 接口（GraphQL 的 viewerReaction 字段在 Discussion 上不存在）：
+// 列出讨论帖的 heart 表情 → 有我的就删，没有就加。
 export async function toggleHeart(
   token: string,
-  discussionNodeId: string,
-  discussionNumber: number
+  discussionNumber: number,
+  myLogin: string
 ): Promise<"liked" | "unliked"> {
-  const q = `query($o:String!,$n:String!,$num:Int!){
-    repository(owner:$o,name:$n){
-      discussion(number:$num){ viewerReaction{ id content } }
-    }
-  }`;
-  const d = await gql<{
-    repository: { discussion: { viewerReaction: { id: string; content: string } | null } };
-  }>(token, q, { o: "jhaoz833", n: "jhaoz833.github.io", num: discussionNumber });
+  const base = `https://api.github.com/repos/jhaoz833/jhaoz833.github.io/discussions/${discussionNumber}/reactions`;
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+  };
 
-  const viewer = d.repository.discussion.viewerReaction;
-  if (viewer?.content === "HEART" && viewer.id) {
-    await gql(
-      token,
-      `mutation($rid:ID!){ removeReaction(input:{reactionId:$rid}){ clientMutationId } }`,
-      { rid: viewer.id }
-    );
+  const res = await fetch(`${base}?per_page=100`, { headers });
+  if (!res.ok) throw new Error(`GitHub ${res.status}：读取表情失败`);
+  const list = (await res.json()) as {
+    id: number;
+    content: string;
+    user?: { login: string } | null;
+  }[];
+  const mine = list.find(
+    (r) =>
+      r.content === "heart" &&
+      r.user?.login?.toLowerCase() === myLogin.toLowerCase()
+  );
+
+  if (mine) {
+    const del = await fetch(`https://api.github.com/reactions/${mine.id}`, {
+      method: "DELETE",
+      headers,
+    });
+    if (!del.ok && del.status !== 404) throw new Error(`GitHub ${del.status}：取消点赞失败`);
     return "unliked";
   }
 
-  await gql(
-    token,
-    `mutation($sid:ID!){ addReaction(input:{subjectId:$sid,content:HEART}){ clientMutationId } }`,
-    { sid: discussionNodeId }
-  );
+  const add = await fetch(base, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ content: "heart" }),
+  });
+  if (!add.ok) throw new Error(`GitHub ${add.status}：点赞失败`);
   return "liked";
 }
 
