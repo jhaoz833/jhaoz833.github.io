@@ -40,7 +40,7 @@ export async function setHeart(
   discussionNumber: number,
   myLogin: string,
   want: "like" | "unlike"
-): Promise<"liked" | "unliked"> {
+): Promise<"like" | "unlike"> {
   const base = `https://api.github.com/repos/jhaoz833/jhaoz833.github.io/discussions/${discussionNumber}/reactions`;
   const headers = {
     Authorization: `Bearer ${token}`,
