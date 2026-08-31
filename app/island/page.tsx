@@ -20,7 +20,7 @@ const posts = postsData as Post[];
 const threads = commentsJson as Record<string, PostThread>;
 
 export default function IslandPage() {
-  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot);
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
   const [mounted, setMounted] = useState(false);
   const [likes, setLikes] = useState<string[]>([]);
 

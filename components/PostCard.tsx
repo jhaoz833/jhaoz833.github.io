@@ -35,7 +35,7 @@ export default function PostCard({
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [extra, setExtra] = useState<PostComment[]>([]);
-  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot);
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
   const loggedIn = authReady() && Boolean(auth.token);
 
   // 真实点赞数 = 数据基线 + 讨论帖表情数（每小时同步）+ 本次会话的即时变化
