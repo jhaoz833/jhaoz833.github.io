@@ -21,6 +21,7 @@ export default function PostCard({
 }) {
   const anim = resolveAnimation(post.animation);
   const [spark, setSpark] = useState(0);
+  const [open, setOpen] = useState(false);
   // 真实点赞数 = 数据里记录的 + 讨论帖表情数（每小时同步）
   const likeCount = post.likes + (thread?.likes ?? 0);
   const likeUrl = thread
