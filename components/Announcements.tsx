@@ -3,10 +3,15 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import changelog from "@/data/changelog.json";
+import autoLog from "@/data/auto-changelog.json";
 
 type Entry = { date: string; title: string; items: string[] };
 
-const entries = changelog as Entry[];
+// 手写精编公告 + 构建时从 git 提交自动生成的公告，按日期合并
+// （自动公告跳过手写已覆盖的日期，不会重复）
+const manual = changelog as Entry[];
+const auto = autoLog as Entry[];
+const entries = [...manual, ...auto].sort((a, b) => b.date.localeCompare(a.date));
 
 // 岛屿公告：每次打开"关于"页都会弹出的更新说明
 export default function Announcements() {
