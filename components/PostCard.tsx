@@ -13,6 +13,7 @@ import {
   unrecordMyLike,
 } from "@/lib/gh-auth";
 import { postComment, setHeart } from "@/lib/gh-api";
+import { cheerIsland } from "@/lib/island-events";
 import { addPending, pendingFor, removePending } from "@/lib/pending";
 import {
   POST_ANIMATIONS,
@@ -108,6 +109,7 @@ export default function PostCard({
 
     try {
       await setHeart(auth.token, thread.number, auth.me?.login ?? "", want);
+      if (want === "like") cheerIsland(); // 点亮成功 → 跟随小岛欢呼
     } catch (e) {
       // 网络不佳：回滚乐观更新，把意图记入本地队列，之后自动补交
       if (want === "like") {
