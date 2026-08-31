@@ -6,8 +6,22 @@ import type { PostComment } from "@/lib/types";
 
 const GQL = "https://api.github.com/graphql";
 
+// 网络瞬时抖动重试：国内到 api.github.com 的连接时通时断，自动多试两次
+async function fetchRetry(url: string, init: RequestInit, tries = 3): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fetch(url, init);
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("网络请求失败");
+}
+
 async function gql<T>(token: string, query: string, variables: object): Promise<T> {
-  const res = await fetch(GQL, {
+  const res = await fetchRetry(GQL, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
@@ -32,7 +46,7 @@ export async function toggleHeart(
     Accept: "application/vnd.github+json",
   };
 
-  const res = await fetch(`${base}?per_page=100`, { headers });
+  const res = await fetchRetry(`${base}?per_page=100`, { headers });
   if (!res.ok) throw new Error(`GitHub ${res.status}：读取表情失败`);
   const list = (await res.json()) as {
     id: number;
@@ -46,7 +60,7 @@ export async function toggleHeart(
   );
 
   if (mine) {
-    const del = await fetch(`https://api.github.com/reactions/${mine.id}`, {
+    const del = await fetchRetry(`https://api.github.com/reactions/${mine.id}`, {
       method: "DELETE",
       headers,
     });
@@ -54,7 +68,7 @@ export async function toggleHeart(
     return "unliked";
   }
 
-  const add = await fetch(base, {
+  const add = await fetchRetry(base, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json" },
     body: JSON.stringify({ content: "heart" }),
