@@ -45,6 +45,7 @@ try {
           nodes{
             id
             number
+            title
             reactions{totalCount}
             comments(first:50){
               nodes{ author{login avatarUrl} body createdAt reactions{totalCount} }
