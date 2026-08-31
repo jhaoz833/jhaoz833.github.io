@@ -32,13 +32,14 @@ async function gql<T>(token: string, query: string, variables: object): Promise<
   return j.data as T;
 }
 
-// 返回 "liked"（点亮）或 "unliked"（取消）。
-// 用 REST 接口（GraphQL 的 viewerReaction 字段在 Discussion 上不存在）：
-// 列出讨论帖的 heart 表情 → 有我的就删，没有就加。
-export async function toggleHeart(
+// 幂等设置表情：想要"已赞"就保证是已赞，想要"已取消"就保证没有。
+// 重复调用安全，适合离线队列补交。
+// 用 REST 接口（GraphQL 的 viewerReaction 字段在 Discussion 上不存在）。
+export async function setHeart(
   token: string,
   discussionNumber: number,
-  myLogin: string
+  myLogin: string,
+  want: "like" | "unlike"
 ): Promise<"liked" | "unliked"> {
   const base = `https://api.github.com/repos/jhaoz833/jhaoz833.github.io/discussions/${discussionNumber}/reactions`;
   const headers = {
@@ -59,22 +60,22 @@ export async function toggleHeart(
       r.user?.login?.toLowerCase() === myLogin.toLowerCase()
   );
 
-  if (mine) {
+  if (want === "like" && !mine) {
+    const add = await fetchRetry(base, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "heart" }),
+    });
+    if (!add.ok) throw new Error(`GitHub ${add.status}：点赞失败`);
+  }
+  if (want === "unlike" && mine) {
     const del = await fetchRetry(`https://api.github.com/reactions/${mine.id}`, {
       method: "DELETE",
       headers,
     });
     if (!del.ok && del.status !== 404) throw new Error(`GitHub ${del.status}：取消点赞失败`);
-    return "unliked";
   }
-
-  const add = await fetchRetry(base, {
-    method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ content: "heart" }),
-  });
-  if (!add.ok) throw new Error(`GitHub ${add.status}：点赞失败`);
-  return "liked";
+  return want;
 }
 
 export async function postComment(

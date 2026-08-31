@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { motion } from "motion/react";
 import type { Post, PostComment, PostThread } from "@/lib/types";
 import { GISCUS } from "@/lib/giscus";
 import {
   authReady,
   getAuthSnapshot,
+  getMyLikes,
   recordMyLike,
   subscribeAuth,
   unrecordMyLike,
 } from "@/lib/gh-auth";
-import { postComment, toggleHeart } from "@/lib/gh-api";
+import { postComment, setHeart } from "@/lib/gh-api";
+import { addPending, pendingFor, removePending } from "@/lib/pending";
 import {
   POST_ANIMATIONS,
   cardVariants,
@@ -44,7 +46,40 @@ export default function PostCard({
   const likeUrl = thread
     ? `https://github.com/${GISCUS.repo}/discussions/${thread.number}`
     : `https://github.com/${GISCUS.repo}/discussions`;
-  const allComments = [...extra, ...(thread?.comments ?? [])];
+
+  // 待同步队列补交：网络恢复后每次打开页面自动重试
+  useEffect(() => {
+    if (!auth.token || !thread?.nodeId) return;
+    const ops = pendingFor(post.id);
+    if (!ops.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const op of ops) {
+        try {
+          if (op.kind === "comment" && op.nodeId && op.body) {
+            const c = await postComment(auth.token, op.nodeId, op.body);
+            if (!cancelled) setExtra((prev) => [c, ...prev]);
+          } else if (op.kind !== "comment") {
+            await setHeart(auth.token, op.number, op.login, op.kind);
+          }
+          removePending(op.key);
+        } catch {
+          break; // 本轮网络仍不佳，下次打开再试
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.token, thread?.nodeId]);
+
+  // 合并"已同步评论"与"本会话新发评论"，去重（补交成功后同步数据会回来）
+  const synced = thread?.comments ?? [];
+  const extraFresh = extra.filter(
+    (e) => !synced.some((s) => s.login === e.login && s.body === e.body)
+  );
+  const allComments = [...extraFresh, ...synced];
 
   const onLike = async () => {
     setSpark((v) => v + 1);
@@ -59,24 +94,38 @@ export default function PostCard({
     if (likeBusy) return;
     setLikeBusy(true);
     setLikeError("");
+
+    // 以本地记录为准决定意图，先乐观更新
+    const liked = getMyLikes().includes(post.id);
+    const want = liked ? "unlike" : "like";
+    if (want === "like") {
+      setLikeDelta((v) => v + 1);
+      recordMyLike(post.id);
+    } else {
+      setLikeDelta((v) => v - 1);
+      unrecordMyLike(post.id);
+    }
+
     try {
-      const r = await toggleHeart(
-        auth.token,
-        thread.number,
-        auth.me?.login ?? ""
-      );
-      if (r === "liked") {
-        setLikeDelta((v) => v + 1);
-        recordMyLike(post.id);
-      } else {
+      await setHeart(auth.token, thread.number, auth.me?.login ?? "", want);
+    } catch (e) {
+      // 网络不佳：回滚乐观更新，把意图记入本地队列，之后自动补交
+      if (want === "like") {
         setLikeDelta((v) => v - 1);
         unrecordMyLike(post.id);
+      } else {
+        setLikeDelta((v) => v + 1);
+        recordMyLike(post.id);
       }
-    } catch (e) {
-      // 不再静默跳转：把真实原因亮出来
+      addPending({
+        postId: post.id,
+        kind: want,
+        number: thread.number,
+        login: auth.me?.login ?? "",
+      });
       setLikeError(
         (e instanceof Error ? e.message : "点赞失败") +
-          "（可去讨论帖手动点亮）"
+          "（已记住这次操作，网络恢复后打开页面会自动补上）"
       );
     } finally {
       setLikeBusy(false);
@@ -93,10 +142,24 @@ export default function PostCard({
       setDraft("");
       setLikeError("");
     } catch (e) {
-      setLikeError(
-        (e instanceof Error ? e.message : "评论失败") +
-          "（你的令牌可能缺少互动权限，可退出后用 ghp_ 经典令牌重新登录）"
-      );
+      const msg = e instanceof Error ? e.message : "评论失败";
+      if (msg.includes("scope") || msg.includes("granted")) {
+        // 权限问题重试也没用，明确指路
+        setLikeError(
+          msg + "（令牌缺少互动权限：去 github.com/settings/tokens 给它勾上 public_repo）"
+        );
+      } else {
+        // 网络问题：记入队列，之后自动补交
+        addPending({
+          postId: post.id,
+          kind: "comment",
+          number: thread.number,
+          nodeId: thread.nodeId,
+          login: auth.me?.login ?? "",
+          body,
+        });
+        setLikeError(msg + "（已记住这条评论，网络恢复后打开页面会自动补发）");
+      }
     } finally {
       setPosting(false);
     }
