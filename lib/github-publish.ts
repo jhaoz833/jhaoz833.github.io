@@ -53,10 +53,10 @@ export async function publishPost(opts: {
 }): Promise<string> {
   const { token, id, text, tags, animation, images } = opts;
 
-  // 1. 图片
+  // 1. 图片（存进 public/images/posts，随构建进入网站）
   const imagePaths: string[] = [];
   for (let i = 0; i < images.length; i++) {
-    const path = `images/posts/${id}-${i + 1}.jpg`;
+    const path = `public/images/posts/${id}-${i + 1}.jpg`;
     await putFile(
       token,
       path,
