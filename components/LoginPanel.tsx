@@ -89,27 +89,72 @@ export default function LoginPanel({ onDone }: { onDone?: () => void }) {
       </button>
       {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
 
-      {/* 备用通道：粘贴令牌（设备流被网络拦截时使用） */}
+      {/* 备用通道：新手教程 + 粘贴令牌 */}
       <details className="mt-5 text-left">
         <summary className="cursor-pointer text-center text-xs text-moon/70 hover:text-star">
-          网络不畅？点这里用备用方式登录
+          📖 第一次上岛？点我看 3 分钟登录教程
         </summary>
         <div className="glass mt-3 rounded-2xl p-4 text-xs leading-relaxed text-moon">
-          <p>
-            1. 打开{" "}
-            <a
-              href="https://github.com/settings/tokens/new?scopes=public_repo&description=Floating%20Island"
-              target="_blank"
-              rel="noreferrer"
-              className="text-aurora underline underline-offset-2"
-            >
-              GitHub 令牌页（已帮你勾好权限）
-            </a>{" "}
-            → 登录后直接拉到底点 <b className="text-star/90">Generate token</b>
+          <ol className="space-y-2.5">
+            <li className="flex gap-2">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-aurora/20 text-[11px] font-bold text-aurora">1</span>
+              <span>
+                没有 GitHub 账号？先去{" "}
+                <a
+                  href="https://github.com/signup"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-aurora underline underline-offset-2"
+                >
+                  github.com/signup
+                </a>{" "}
+                免费注册（一分钟，有账号跳过这步）
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-aurora/20 text-[11px] font-bold text-aurora">2</span>
+              <span>
+                点{" "}
+                <a
+                  href="https://github.com/settings/tokens/new?scopes=public_repo&description=Floating%20Island"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-aurora underline underline-offset-2"
+                >
+                  这个链接
+                </a>{" "}
+                打开令牌生成页（权限 <b className="text-star/90">public_repo</b> 已自动帮你勾好，不用改）
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-aurora/20 text-[11px] font-bold text-aurora">3</span>
+              <span>
+                Note 栏随便填个名字（如 <code className="text-star/80">fudao</code>）；
+                <b className="text-star/90"> Expiration 建议选 No expiration（永不过期）</b>
+                ，省得以后每月重新生成
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-aurora/20 text-[11px] font-bold text-aurora">4</span>
+              <span>拉到页面最底部，点绿色 <b className="text-star/90">Generate token</b> 按钮</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-aurora/20 text-[11px] font-bold text-aurora">5</span>
+              <span>
+                复制生成的令牌（<b className="text-gold">ghp_ 开头，只显示这一次</b>，离开页面就看不到了）
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-aurora/20 text-[11px] font-bold text-aurora">6</span>
+              <span>回到本页粘贴进下面的框，点「登陆」——完成，钥匙只存在你自己的浏览器里</span>
+            </li>
+          </ol>
+
+          <p className="mt-3 rounded-lg bg-white/5 p-2.5 text-[11px] text-moon/70 ring-1 ring-white/10">
+            🔒 令牌只用于点赞和评论，不会经过任何第三方服务器；想作废随时去 github.com/settings/tokens 删除。
+            注意 <b className="text-star/80">github_pat_</b> 开头的是发布器专用令牌，不能用来登录。
           </p>
-          <p className="mt-1.5">
-            2. 复制生成的令牌（ghp_ 开头，只显示一次）粘贴到下面。令牌只存在你自己浏览器，用于点赞和评论，可随时在 GitHub 删除。
-          </p>
+
           <div className="mt-3 flex gap-2">
             <input
               type="password"
@@ -123,7 +168,7 @@ export default function LoginPanel({ onDone }: { onDone?: () => void }) {
                 const t = manualToken.trim();
                 if (t.startsWith("github_pat_")) {
                   setManualError(
-                    "这是发布器的细粒度令牌，没有互动权限。请点上方蓝色链接生成经典令牌（ghp_ 开头）"
+                    "这是发布器的细粒度令牌，没有互动权限。请按上方教程生成经典令牌（ghp_ 开头）"
                   );
                   return;
                 }
