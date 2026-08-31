@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Announcements from "@/components/Announcements";
 
 const SKILLS = ["平面设计", "插画", "摄影", "调色"];
 const PLANS = ["音乐播放 🚧", "短视频 🚧", "发布器 🚧"];
@@ -12,6 +13,7 @@ const SOCIALS = [
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 pb-10 pt-28">
+      <Announcements />
       <div className="flex flex-col items-center text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
