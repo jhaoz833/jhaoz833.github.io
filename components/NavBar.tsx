@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/", label: "首页" },
   { href: "/moments", label: "动态" },
   { href: "/works", label: "作品" },
+  { href: "/island", label: "岛屿" },
   { href: "/about", label: "关于" },
 ];
 
@@ -24,7 +25,7 @@ export default function NavBar() {
       <nav className="glass mx-auto mt-4 flex max-w-4xl items-center justify-between rounded-full px-5 py-2.5 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-widest">
           <span className="text-gold">✦</span>
-          <span>浮岛</span>
+          <span className="hidden sm:inline">浮岛</span>
         </Link>
         <ul className="flex items-center gap-0.5 text-sm sm:gap-1">
           {LINKS.map((l) => {

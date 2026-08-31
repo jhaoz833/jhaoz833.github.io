@@ -22,6 +22,7 @@ export type PostComment = {
 // 每条动态对应的评论帖（GitHub Discussion 编号 + 已同步的评论与点赞）
 export type PostThread = {
   number: number;
+  nodeId: string;
   likes: number;
   comments: PostComment[];
 };

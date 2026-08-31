@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { motion } from "motion/react";
-import type { Post, PostThread } from "@/lib/types";
+import type { Post, PostComment, PostThread } from "@/lib/types";
 import { GISCUS } from "@/lib/giscus";
+import {
+  authReady,
+  getAuthSnapshot,
+  recordMyLike,
+  subscribeAuth,
+  unrecordMyLike,
+} from "@/lib/gh-auth";
+import { postComment, toggleHeart } from "@/lib/gh-api";
 import {
   POST_ANIMATIONS,
   cardVariants,
@@ -22,11 +30,64 @@ export default function PostCard({
   const anim = resolveAnimation(post.animation);
   const [spark, setSpark] = useState(0);
   const [open, setOpen] = useState(false);
-  // 真实点赞数 = 数据里记录的 + 讨论帖表情数（每小时同步）
-  const likeCount = post.likes + (thread?.likes ?? 0);
+  const [likeDelta, setLikeDelta] = useState(0);
+  const [likeBusy, setLikeBusy] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [extra, setExtra] = useState<PostComment[]>([]);
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot);
+  const loggedIn = authReady() && Boolean(auth.token);
+
+  // 真实点赞数 = 数据基线 + 讨论帖表情数（每小时同步）+ 本次会话的即时变化
+  const likeCount = post.likes + (thread?.likes ?? 0) + likeDelta;
   const likeUrl = thread
     ? `https://github.com/${GISCUS.repo}/discussions/${thread.number}`
     : `https://github.com/${GISCUS.repo}/discussions`;
+  const allComments = [...extra, ...(thread?.comments ?? [])];
+
+  const onLike = async () => {
+    setSpark((v) => v + 1);
+    if (!authReady() || !thread?.nodeId) {
+      window.open(likeUrl, "_blank");
+      return;
+    }
+    if (!auth.token) {
+      window.location.href = "/island";
+      return;
+    }
+    if (likeBusy) return;
+    setLikeBusy(true);
+    try {
+      const r = await toggleHeart(auth.token, thread.nodeId, thread.number);
+      if (r === "liked") {
+        setLikeDelta((v) => v + 1);
+        recordMyLike(post.id);
+      } else {
+        setLikeDelta((v) => v - 1);
+        unrecordMyLike(post.id);
+      }
+    } catch {
+      // 失败时兜底跳转讨论帖手动点亮
+      window.open(likeUrl, "_blank");
+    } finally {
+      setLikeBusy(false);
+    }
+  };
+
+  const submitComment = async () => {
+    const body = draft.trim();
+    if (!body || !thread?.nodeId || posting || !auth.token) return;
+    setPosting(true);
+    try {
+      const c = await postComment(auth.token, thread.nodeId, body);
+      setExtra((prev) => [c, ...prev]);
+      setDraft("");
+    } catch {
+      window.open(likeUrl, "_blank");
+    } finally {
+      setPosting(false);
+    }
+  };
 
   return (
     <motion.article
@@ -89,14 +150,12 @@ export default function PostCard({
             ))}
           </div>
           <div className="flex items-center gap-4 text-sm text-moon">
-            <a
-              href={likeUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => setSpark((v) => v + 1)}
-              className="relative flex items-center gap-1.5 transition-colors hover:text-gold"
-              title="用 GitHub 账号点亮 ❤️（跳转到这条动态的讨论帖）"
-              aria-label="点赞（GitHub 账号）"
+            <button
+              onClick={onLike}
+              disabled={likeBusy}
+              className="relative flex items-center gap-1.5 transition-colors hover:text-gold disabled:opacity-60"
+              title={loggedIn ? "点亮 / 取消 ❤️" : "登陆后可一键点亮"}
+              aria-label="点赞"
             >
               {spark > 0 && (
                 <motion.span
@@ -123,24 +182,63 @@ export default function PostCard({
               )}
               <span>♡</span>
               {likeCount}
-            </a>
+            </button>
             <button
               onClick={() => setOpen((v) => !v)}
               className="flex items-center gap-1 transition-colors hover:text-aurora"
               aria-expanded={open}
             >
-              💬 {thread ? thread.comments.length : post.comments}
+              💬 {allComments.length || post.comments}
             </button>
           </div>
         </div>
         {open && (
           <div className="mt-4 border-t border-white/10 pt-4">
             <p className="mb-3 text-xs text-moon">
-              ✦ 评论{thread ? ` · ${thread.comments.length} 条` : ""}
+              ✦ 评论{allComments.length ? ` · ${allComments.length} 条` : ""}
             </p>
-            {thread && thread.comments.length > 0 ? (
+            {/* 登录后可原地评论 */}
+            {loggedIn && thread?.nodeId ? (
+              <div className="mb-4 flex gap-2">
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  rows={2}
+                  placeholder={`以 ${auth.me?.name ?? "岛民"} 的身份说点什么…`}
+                  className="flex-1 resize-none rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-star placeholder:text-moon/50 focus:border-aurora/50 focus:outline-none"
+                />
+                <button
+                  onClick={submitComment}
+                  disabled={posting || !draft.trim()}
+                  className="self-end rounded-full bg-aurora px-4 py-2 text-xs font-medium text-void disabled:opacity-50"
+                >
+                  {posting ? "发送中…" : "发表"}
+                </button>
+              </div>
+            ) : (
+              <p className="mb-4 text-xs text-moon/70">
+                {authReady() ? (
+                  <>
+                    <a href="/island" className="text-aurora underline underline-offset-2">
+                      登陆上岛
+                    </a>{" "}
+                    后可以直接在这里评论、一键点赞
+                  </>
+                ) : (
+                  <a
+                    href={likeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-aurora underline underline-offset-2"
+                  >
+                    去 GitHub 评论 →
+                  </a>
+                )}
+              </p>
+            )}
+            {allComments.length > 0 ? (
               <ul className="space-y-3">
-                {thread.comments.map((c, i) => (
+                {allComments.map((c, i) => (
                   <li key={i} className="flex gap-2.5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {c.avatar ? (

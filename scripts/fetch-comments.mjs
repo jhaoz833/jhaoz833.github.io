@@ -43,6 +43,7 @@ try {
         id
         discussions(first:50){
           nodes{
+            id
             number
             reactions{totalCount}
             comments(first:50){
@@ -90,6 +91,7 @@ try {
 
     out[post.id] = {
       number: d.number,
+      nodeId: d.id,
       likes: d.reactions.totalCount,
       comments: d.comments.nodes.map((c) => ({
         login: c.author?.login ?? "匿名岛民",
