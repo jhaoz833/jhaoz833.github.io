@@ -149,6 +149,13 @@ export function pollDeviceLogin(
   };
 }
 
+// 备用登录：访客粘贴自己的经典 PAT（public_repo 作用域）
+export async function saveManualToken(token: string) {
+  const t = token.trim();
+  if (t.length < 20) throw new Error("令牌长度不对，请完整粘贴");
+  await saveToken(t);
+}
+
 // 我赞过的动态（记在本地，个人中心展示用）
 export function recordMyLike(postId: string) {
   try {

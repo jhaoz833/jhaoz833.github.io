@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import {
   authReady,
   pollDeviceLogin,
+  saveManualToken,
   startDeviceLogin,
   type DeviceSession,
 } from "@/lib/gh-auth";
@@ -14,6 +15,9 @@ export default function LoginPanel({ onDone }: { onDone?: () => void }) {
   const [session, setSession] = useState<DeviceSession | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [manualToken, setManualToken] = useState("");
+  const [manualBusy, setManualBusy] = useState(false);
+  const [manualError, setManualError] = useState("");
 
   if (!authReady()) {
     return (
@@ -84,6 +88,58 @@ export default function LoginPanel({ onDone }: { onDone?: () => void }) {
         {busy ? "正在发起…" : "✦ 用 GitHub 登陆上岛"}
       </button>
       {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
+
+      {/* 备用通道：粘贴令牌（设备流被网络拦截时使用） */}
+      <details className="mt-5 text-left">
+        <summary className="cursor-pointer text-center text-xs text-moon/70 hover:text-star">
+          网络不畅？点这里用备用方式登录
+        </summary>
+        <div className="glass mt-3 rounded-2xl p-4 text-xs leading-relaxed text-moon">
+          <p>
+            1. 打开{" "}
+            <a
+              href="https://github.com/settings/tokens/new?scopes=public_repo&description=Floating%20Island"
+              target="_blank"
+              rel="noreferrer"
+              className="text-aurora underline underline-offset-2"
+            >
+              GitHub 令牌页（已帮你勾好权限）
+            </a>{" "}
+            → 登录后直接拉到底点 <b className="text-star/90">Generate token</b>
+          </p>
+          <p className="mt-1.5">
+            2. 复制生成的令牌（ghp_ 开头，只显示一次）粘贴到下面。令牌只存在你自己浏览器，用于点赞和评论，可随时在 GitHub 删除。
+          </p>
+          <div className="mt-3 flex gap-2">
+            <input
+              type="password"
+              value={manualToken}
+              onChange={(e) => setManualToken(e.target.value)}
+              placeholder="粘贴 ghp_ 开头的令牌"
+              className="flex-1 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-star placeholder:text-moon/50 focus:border-aurora/50 focus:outline-none"
+            />
+            <button
+              onClick={async () => {
+                setManualBusy(true);
+                setManualError("");
+                try {
+                  await saveManualToken(manualToken);
+                  onDone?.();
+                } catch (e) {
+                  setManualError(e instanceof Error ? e.message : "保存失败");
+                } finally {
+                  setManualBusy(false);
+                }
+              }}
+              disabled={manualBusy || manualToken.trim().length < 20}
+              className="rounded-full bg-aurora px-4 py-1.5 text-xs font-medium text-void disabled:opacity-50"
+            >
+              {manualBusy ? "验证中…" : "登陆"}
+            </button>
+          </div>
+          {manualError && <p className="mt-2 text-red-300">{manualError}</p>}
+        </div>
+      </details>
     </div>
   );
 }
