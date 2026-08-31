@@ -1,11 +1,31 @@
 [
   {
+    "id": "2026-08-31-1r0b",
+    "author": "岛主",
+    "createdAt": "2026-08-31",
+    "text": "今天是上岛的第一天，你有什么感受？",
+    "images": [
+      "/images/posts/2026-08-31-1r0b-1.jpg"
+    ],
+    "tags": [
+      "灵感",
+      "作品"
+    ],
+    "animation": "starlight",
+    "likes": 0,
+    "comments": 0
+  },
+  {
     "id": "hello-fudao",
     "author": "站长",
     "createdAt": "2026-08-30",
     "text": "浮岛第一天上线，把星星都点亮了 ✦ 以后这里会存放我拍下的、画下的、想到的一切。",
-    "images": ["/images/works/floating-garden.svg"],
-    "tags": ["日常"],
+    "images": [
+      "/images/works/floating-garden.svg"
+    ],
+    "tags": [
+      "日常"
+    ],
     "animation": "fadeUp",
     "likes": 12,
     "comments": 3
@@ -15,8 +35,13 @@
     "author": "站长",
     "createdAt": "2026-08-28",
     "text": "深夜调色练习：把一片晚霞塞进了午夜便利店。",
-    "images": ["/images/works/midnight.svg"],
-    "tags": ["练习", "调色"],
+    "images": [
+      "/images/works/midnight.svg"
+    ],
+    "tags": [
+      "练习",
+      "调色"
+    ],
     "animation": "polaroid",
     "likes": 25,
     "comments": 6
@@ -27,7 +52,9 @@
     "createdAt": "2026-08-25",
     "text": "最近循环的白噪音清单：雨声、篝火、老式风扇。适合赶稿的夜晚。",
     "images": [],
-    "tags": ["碎片"],
+    "tags": [
+      "碎片"
+    ],
     "animation": "typewriter",
     "likes": 8,
     "comments": 2
