@@ -12,7 +12,7 @@ const LIKES_KEY = "fudao-my-likes";
 const JOINED_KEY = "fudao-joined-at";
 
 // 由用户创建的 OAuth App 填入（公开值，设备流不需要密钥）
-export const CLIENT_ID = "PENDING";
+export const CLIENT_ID = "Ov23ligiP94zCiZsA3Gp";
 export const authReady = () => CLIENT_ID !== "PENDING";
 
 // 极简外部存储：让多个组件共享登录态
