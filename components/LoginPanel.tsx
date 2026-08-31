@@ -120,10 +120,17 @@ export default function LoginPanel({ onDone }: { onDone?: () => void }) {
             />
             <button
               onClick={async () => {
+                const t = manualToken.trim();
+                if (t.startsWith("github_pat_")) {
+                  setManualError(
+                    "这是发布器的细粒度令牌，没有互动权限。请点上方蓝色链接生成经典令牌（ghp_ 开头）"
+                  );
+                  return;
+                }
                 setManualBusy(true);
                 setManualError("");
                 try {
-                  await saveManualToken(manualToken);
+                  await saveManualToken(t);
                   onDone?.();
                 } catch (e) {
                   setManualError(e instanceof Error ? e.message : "保存失败");

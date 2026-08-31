@@ -35,6 +35,7 @@ export default function PostCard({
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [extra, setExtra] = useState<PostComment[]>([]);
+  const [likeError, setLikeError] = useState("");
   const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
   const loggedIn = authReady() && Boolean(auth.token);
 
@@ -57,6 +58,7 @@ export default function PostCard({
     }
     if (likeBusy) return;
     setLikeBusy(true);
+    setLikeError("");
     try {
       const r = await toggleHeart(auth.token, thread.nodeId, thread.number);
       if (r === "liked") {
@@ -66,9 +68,12 @@ export default function PostCard({
         setLikeDelta((v) => v - 1);
         unrecordMyLike(post.id);
       }
-    } catch {
-      // 失败时兜底跳转讨论帖手动点亮
-      window.open(likeUrl, "_blank");
+    } catch (e) {
+      // 不再静默跳转：把真实原因亮出来
+      setLikeError(
+        (e instanceof Error ? e.message : "点赞失败") +
+          "（可去讨论帖手动点亮）"
+      );
     } finally {
       setLikeBusy(false);
     }
@@ -82,8 +87,12 @@ export default function PostCard({
       const c = await postComment(auth.token, thread.nodeId, body);
       setExtra((prev) => [c, ...prev]);
       setDraft("");
-    } catch {
-      window.open(likeUrl, "_blank");
+      setLikeError("");
+    } catch (e) {
+      setLikeError(
+        (e instanceof Error ? e.message : "评论失败") +
+          "（你的令牌可能缺少互动权限，可退出后用 ghp_ 经典令牌重新登录）"
+      );
     } finally {
       setPosting(false);
     }
@@ -194,6 +203,11 @@ export default function PostCard({
         </div>
         {open && (
           <div className="mt-4 border-t border-white/10 pt-4">
+            {likeError && (
+              <p className="mb-3 rounded-xl bg-red-500/10 p-3 text-xs leading-relaxed text-red-300 ring-1 ring-red-400/30">
+                ⚠ {likeError}
+              </p>
+            )}
             <p className="mb-3 text-xs text-moon">
               ✦ 评论{allComments.length ? ` · ${allComments.length} 条` : ""}
             </p>
