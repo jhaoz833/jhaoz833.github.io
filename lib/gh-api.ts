@@ -1,8 +1,25 @@
-// 用访客自己的 GitHub 令牌操作讨论帖：一键点赞（表情）与原地评论。
-// 任何 GitHub 用户本就有权互动公开仓库的讨论帖，无需仓库写权限。
 "use client";
 
+import { COMMUNITY_CATEGORY_ID, REPO_ID } from "@/lib/site";
 import type { PostComment } from "@/lib/types";
+
+// 登录者发社区动态：在"动态"分类创建讨论帖，同步后进入动态流
+export async function createCommunityPost(token: string, text: string): Promise<number> {
+  const title = `动态 · ${new Date().toISOString().slice(0, 10)}`;
+  const d = await gql<{ createDiscussion: { discussion: { number: number } } }>(
+    token,
+    `mutation($r:ID!,$c:ID!,$t:String!,$b:String!){
+      createDiscussion(input:{repositoryId:$r,categoryId:$c,title:$t,body:$b}){
+        discussion{ number }
+      }
+    }`,
+    { r: REPO_ID, c: COMMUNITY_CATEGORY_ID, t: title, b: text }
+  );
+  return d.createDiscussion.discussion.number;
+}
+
+// 用访客自己的 GitHub 令牌操作讨论帖：一键点赞（表情）与原地评论。
+// 任何 GitHub 用户本就有权互动公开仓库的讨论帖，无需仓库写权限。
 
 const GQL = "https://api.github.com/graphql";
 

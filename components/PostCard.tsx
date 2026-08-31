@@ -188,9 +188,18 @@ export default function PostCard({
       <div className="p-5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm">
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-aurora/20 text-xs text-aurora ring-1 ring-aurora/30">
-              ✦
-            </span>
+            {post.authorAvatar ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={post.authorAvatar}
+                alt=""
+                className="h-7 w-7 rounded-full ring-1 ring-white/15"
+              />
+            ) : (
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-aurora/20 text-xs text-aurora ring-1 ring-aurora/30">
+                ✦
+              </span>
+            )}
             <span className="text-star/90">{post.author}</span>
             <span className="text-moon/70">· {post.createdAt}</span>
           </div>

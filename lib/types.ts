@@ -1,6 +1,7 @@
 export type Post = {
   id: string;
   author: string;
+  authorAvatar?: string; // 社区动态：作者 GitHub 头像
   createdAt: string;
   text: string;
   images: string[];
