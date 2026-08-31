@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PostCard from "@/components/PostCard";
 import PostComposer from "@/components/PostComposer";
+import FollowIsland from "@/components/FollowIsland";
 import postsData from "@/data/posts.json";
 import communityData from "@/data/community.json";
 import commentsJson from "@/data/comments.json";
@@ -39,6 +40,7 @@ export default function MomentsPage() {
           ← 回到首页
         </Link>
       </div>
+      <FollowIsland />
     </div>
   );
 }

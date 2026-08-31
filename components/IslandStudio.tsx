@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import IslandAvatar, { type IslandConfig } from "@/components/IslandAvatar";
-
-// 小岛装修工作台：自由搭配专属小岛，配置保存在本机浏览器
-const KEY = "fudao-island-config";
+import { loadFollow, loadIslandConfig, saveFollow, saveIslandConfig } from "@/lib/island-store";
 
 const BASES = [
   { e: "🟣", n: "紫夜" },
@@ -59,31 +57,34 @@ function defaultConfig(seed: string): IslandConfig {
 }
 
 function loadConfig(seed: string): IslandConfig {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const c = JSON.parse(raw) as IslandConfig;
-      if (typeof c.base === "number") return c;
-    }
-  } catch {}
+  const saved = loadIslandConfig();
+  if (saved) return saved;
   return defaultConfig(seed);
 }
 
 export default function IslandStudio({ seed }: { seed: string }) {
   const [cfg, setCfg] = useState<IslandConfig>(() => defaultConfig(seed));
+  const [follow, setFollow] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     setCfg(loadConfig(seed));
+    setFollow(loadFollow());
     setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed]);
 
   const update = (next: IslandConfig) => {
     setCfg(next);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {}
+    saveIslandConfig(next);
+  };
+
+  const toggleFollow = () => {
+    const next = !follow;
+    setFollow(next);
+    saveFollow(next);
+    // 开启跟随时，若本机还没有保存过小岛配置，把当前展示的这座一并存下
+    if (next && !loadIslandConfig()) saveIslandConfig(cfg);
   };
 
   const randomize = () => {
@@ -125,6 +126,32 @@ export default function IslandStudio({ seed }: { seed: string }) {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-5 rounded-2xl bg-white/5 p-3.5 ring-1 ring-white/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-star">🪐 一键跟随</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-moon/70">
+                {follow ? "小岛正漂在你浏览的动态页里" : "开启后，小岛会漂进你浏览的动态页"}
+              </p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={follow}
+              aria-label="一键跟随小岛"
+              onClick={toggleFollow}
+              className={`relative h-7 w-[3.25rem] shrink-0 rounded-full ring-1 transition ${
+                follow ? "bg-gold/25 ring-gold/50" : "bg-white/5 ring-white/15"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-6 w-6 rounded-full bg-star shadow transition-all ${
+                  follow ? "left-[1.6rem] bg-gold" : "left-0.5"
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
