@@ -43,7 +43,8 @@ try {
         id
         discussions(first:50){
           nodes{
-            number title
+            number
+            reactions{totalCount}
             comments(first:50){
               nodes{ author{login avatarUrl} body createdAt reactions{totalCount} }
             }
@@ -89,6 +90,7 @@ try {
 
     out[post.id] = {
       number: d.number,
+      likes: d.reactions.totalCount,
       comments: d.comments.nodes.map((c) => ({
         login: c.author?.login ?? "匿名岛民",
         avatar: c.author?.avatarUrl ?? "",

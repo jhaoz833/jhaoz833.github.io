@@ -19,9 +19,10 @@ export type PostComment = {
   likes: number;
 };
 
-// 每条动态对应的评论帖（GitHub Discussion 编号 + 已同步的评论）
+// 每条动态对应的评论帖（GitHub Discussion 编号 + 已同步的评论与点赞）
 export type PostThread = {
   number: number;
+  likes: number;
   comments: PostComment[];
 };
 

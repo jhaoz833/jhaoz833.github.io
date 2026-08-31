@@ -20,9 +20,12 @@ export default function PostCard({
   thread?: PostThread;
 }) {
   const anim = resolveAnimation(post.animation);
-  const [liked, setLiked] = useState(false);
-  const [open, setOpen] = useState(false);
-  const likeCount = post.likes + (liked ? 1 : 0);
+  const [spark, setSpark] = useState(0);
+  // 真实点赞数 = 数据里记录的 + 讨论帖表情数（每小时同步）
+  const likeCount = post.likes + (thread?.likes ?? 0);
+  const likeUrl = thread
+    ? `https://github.com/${GISCUS.repo}/discussions/${thread.number}`
+    : `https://github.com/${GISCUS.repo}/discussions`;
 
   return (
     <motion.article
@@ -85,14 +88,21 @@ export default function PostCard({
             ))}
           </div>
           <div className="flex items-center gap-4 text-sm text-moon">
-            <button
-              onClick={() => setLiked((v) => !v)}
+            <a
+              href={likeUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setSpark((v) => v + 1)}
               className="relative flex items-center gap-1.5 transition-colors hover:text-gold"
-              aria-pressed={liked}
-              aria-label="点赞"
+              title="用 GitHub 账号点亮 ❤️（跳转到这条动态的讨论帖）"
+              aria-label="点赞（GitHub 账号）"
             >
-              {liked && (
-                <span className="pointer-events-none absolute -top-2 left-1/2">
+              {spark > 0 && (
+                <motion.span
+                  key={spark}
+                  className="pointer-events-none absolute -top-2 left-1/2"
+                  initial={{ opacity: 1 }}
+                >
                   {Array.from({ length: 6 }).map((_, i) => (
                     <motion.span
                       key={i}
@@ -108,17 +118,11 @@ export default function PostCard({
                       ✦
                     </motion.span>
                   ))}
-                </span>
+                </motion.span>
               )}
-              <motion.span
-                animate={liked ? { scale: [1, 1.6, 1] } : { scale: 1 }}
-                transition={{ duration: 0.35 }}
-                className={liked ? "text-gold" : ""}
-              >
-                {liked ? "♥" : "♡"}
-              </motion.span>
+              <span>♡</span>
               {likeCount}
-            </button>
+            </a>
             <button
               onClick={() => setOpen((v) => !v)}
               className="flex items-center gap-1 transition-colors hover:text-aurora"
