@@ -33,7 +33,20 @@ const MURMURS = {
     "这座岛为你欢呼 ✦",
     "喜欢就多点亮几个嘛",
   ],
+  night: [
+    "这么晚还醒着呀…",
+    "星星都困得眨眼睛了",
+    "夜里的小岛最安静",
+    "早点休息，岛替你守夜",
+    "月光刚好，盖好被子",
+  ],
 } as const;
+
+// 深夜时段（0-5 点）说夜话
+function isNight(): boolean {
+  const h = new Date().getHours();
+  return h < 5;
+}
 
 function pick<T>(arr: readonly T[], not?: unknown): T {
   if (arr.length === 1) return arr[0];
@@ -74,10 +87,11 @@ export default function FollowIsland() {
       timer = setTimeout(() => {
         setMurmur((cur) => {
           const said = (arr: readonly string[]) => arr.includes(cur ?? "");
-          // 互动话术优先展示满一轮，再换回闲聊
+          // 深夜时段说夜话，其余时间闲聊；互动话术优先展示满一轮再回归
+          const pool = isNight() ? MURMURS.night : MURMURS.idle;
           return cur === null || said(MURMURS.cheer) || said(MURMURS.poke)
-            ? pick(MURMURS.idle)
-            : pick(MURMURS.idle, cur);
+            ? pick(pool)
+            : pick(pool, cur);
         });
         schedule(9000);
       }, delay);
