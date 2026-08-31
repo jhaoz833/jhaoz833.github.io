@@ -91,13 +91,19 @@ export type DeviceSession = {
   expiresAt: number;
 };
 
-// 第一步：申请设备码，返回给界面展示
+// 第一步：申请设备码，返回给界面展示。
+// 用表单格式（application/x-www-form-urlencoded）避免 CORS 预检，浏览器可直接调用。
 export async function startDeviceLogin(): Promise<DeviceSession> {
-  const res = await fetch("https://github.com/login/device/code", {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ client_id: CLIENT_ID, scope: "public_repo" }),
-  });
+  let res: Response;
+  try {
+    res = await fetch("https://github.com/login/device/code", {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      body: new URLSearchParams({ client_id: CLIENT_ID, scope: "public_repo" }),
+    });
+  } catch {
+    throw new Error("网络不通，请稍后再试（GitHub 暂时连不上）");
+  }
   if (!res.ok) throw new Error(`无法发起登录（${res.status}），请稍后再试`);
   const j = await res.json();
   return {
@@ -121,8 +127,8 @@ export function pollDeviceLogin(
       if (stopped) return;
       const res = await fetch("https://github.com/login/oauth/access_token", {
         method: "POST",
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({
+        headers: { Accept: "application/json" },
+        body: new URLSearchParams({
           client_id: CLIENT_ID,
           device_code: s.deviceCode,
           grant_type: "urn:ietf:params:oauth:grant-type:device_code",
