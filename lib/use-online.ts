@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-// 在线人数 Worker 地址：部署 worker/online.mjs 后填入（如 https://online.xxx.workers.dev），
-// 或在构建环境设置 NEXT_PUBLIC_ONLINE_WORKER_URL。留空时导航栏不显示该标识。
-const WORKER_URL = process.env.NEXT_PUBLIC_ONLINE_WORKER_URL || "";
+// 在线人数 Worker 地址（Cloudflare Worker + D1），也可用环境变量 NEXT_PUBLIC_ONLINE_WORKER_URL 覆盖
+const WORKER_URL =
+  process.env.NEXT_PUBLIC_ONLINE_WORKER_URL || "https://online.zojoho123456.workers.dev";
 
 const HEARTBEAT_MS = 60_000; // 心跳间隔
 const POLL_MS = 30_000; // 拉取人数间隔
