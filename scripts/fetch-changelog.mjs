@@ -72,7 +72,15 @@ for (const [date, entry] of byDay) {
 }
 existing.sort((a, b) => b.date.localeCompare(a.date));
 
-writeFileSync(OUT, JSON.stringify(existing, null, 2) + "\n");
-console.log(`自动公告已更新：共 ${existing.length} 条（新增日期 ${
+// 滚动窗口：自动公告只保留最近 AUTO_KEEP_DAYS 天，更早的丢弃（手写精编公告不受影响）
+const AUTO_KEEP_DAYS = 30;
+const cutoff = new Date(Date.now() - AUTO_KEEP_DAYS * 86400_000).toISOString().slice(0, 10);
+const kept = existing.filter((e) => manual.some((m) => m.date === e.date) || e.date >= cutoff);
+if (kept.length !== existing.length) {
+  console.log(`裁剪 ${existing.length - kept.length} 条超过 ${AUTO_KEEP_DAYS} 天的自动公告`);
+}
+
+writeFileSync(OUT, JSON.stringify(kept, null, 2) + "\n");
+console.log(`自动公告已更新：共 ${kept.length} 条（新增日期 ${
   [...byDay.keys()].filter((d) => dayIndex.get(d) === -1).length
 } 个）`);
