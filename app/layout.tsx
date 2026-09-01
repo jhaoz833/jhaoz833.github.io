@@ -5,9 +5,31 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import IntroGate from "@/components/IntroGate";
 
+const SITE = "https://jhaoz833.github.io";
+
 export const metadata: Metadata = {
-  title: "浮岛 · Floating Island",
-  description: "漂浮在星海里的个人小岛——收藏图片、文字与心情。",
+  metadataBase: new URL(SITE),
+  title: {
+    default: "浮岛 · Floating Island",
+    template: "%s · 浮岛",
+  },
+  description: "漂浮在星海里的个人小岛——收藏图片、文字与心情。GitHub 账号即可上岛，点亮动态、装修你的专属小岛。",
+  openGraph: {
+    type: "website",
+    siteName: "浮岛 · Floating Island",
+    title: "浮岛 · Floating Island",
+    description: "漂浮在星海里的个人小岛——点亮动态、留下评论、装修你的专属小岛。",
+    images: [{ url: "/images/invite-cover.jpg", width: 2560, height: 1440, alt: "浮岛 · 内测邀请" }],
+    locale: "zh_CN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "浮岛 · Floating Island",
+    description: "漂浮在星海里的个人小岛——点亮动态、留下评论、装修你的专属小岛。",
+    images: ["/images/invite-cover.jpg"],
+  },
+  alternates: { canonical: "/" },
+  icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {
