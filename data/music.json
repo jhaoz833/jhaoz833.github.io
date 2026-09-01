@@ -1,6 +1,14 @@
 {
   "tracks": [
     {
+      "id": "mono",
+      "title": "Mono (Feat. Skaiwater) · 试听",
+      "artist": "(G)I-DLE",
+      "cover": "/images/music/mono.svg",
+      "source": "local",
+      "src": "/music/mono.mp3"
+    },
+    {
       "id": "starlight-lullaby",
       "title": "星海摇篮",
       "artist": "岛主 · 占位曲",
