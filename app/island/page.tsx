@@ -15,10 +15,12 @@ import {
 } from "@/lib/gh-auth";
 import postsData from "@/data/posts.json";
 import commentsJson from "@/data/comments.json";
+import creatorsData from "@/data/creators.json";
 import type { Post, PostThread } from "@/lib/types";
 
 const posts = postsData as Post[];
 const threads = commentsJson as Record<string, PostThread>;
+const CREATORS = (creatorsData as { note?: string; creators: string[] }).creators;
 
 export default function IslandPage() {
   const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
@@ -89,6 +91,27 @@ export default function IslandPage() {
               退出登陆
             </button>
           </motion.section>
+
+          {/* 创作者入口：白名单内的用户可见 */}
+          {CREATORS.some((c) => c.toLowerCase() === me.login.toLowerCase()) && (
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="glass mt-6 rounded-3xl p-5 text-center"
+            >
+              <p className="text-[10px] tracking-[0.4em] text-gold">CREATOR · 创作者</p>
+              <p className="mt-2 text-sm text-moon">
+                你有创作权限——发布动态，或将珍视之物入藏宝库。
+              </p>
+              <Link
+                href="/publish"
+                className="mt-4 inline-block rounded-full bg-gold/90 px-6 py-2 text-sm font-semibold text-[#0a0e1f] transition hover:bg-gold"
+              >
+                ✦ 去发布
+              </Link>
+            </motion.section>
+          )}
 
           {/* 专属小岛装修 */}
           <IslandStudio seed={me.login} />
