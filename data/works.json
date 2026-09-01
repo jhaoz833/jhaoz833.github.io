@@ -1,9 +1,24 @@
 [
   {
+    "slug": "排列",
+    "title": "排列",
+    "year": "2026",
+    "tags": [
+      "灵感"
+    ],
+    "image": "/images/works/排列.jpg",
+    "description": "一层层楼的排列，在耀眼的阳光下，渐入佳境。",
+    "featured": true,
+    "acquired": "2026-09-01"
+  },
+  {
     "slug": "fog-island",
     "title": "雾岛",
     "year": "2024",
-    "tags": ["概念", "氛围"],
+    "tags": [
+      "概念",
+      "氛围"
+    ],
     "image": "/images/works/fog-island.jpg",
     "description": "网站名字的来源——雾气散开之前，岛是浮着的。",
     "featured": true,
@@ -14,7 +29,10 @@
     "slug": "star-trails",
     "title": "星轨练习",
     "year": "2026",
-    "tags": ["摄影", "长曝光"],
+    "tags": [
+      "摄影",
+      "长曝光"
+    ],
     "image": "/images/works/star-trails.jpg",
     "description": "在阳台守到凌晨三点，把两百张星星叠成一条河。",
     "featured": false,
@@ -25,7 +43,10 @@
     "slug": "floating-garden",
     "title": "悬浮花园",
     "year": "2026",
-    "tags": ["插画", "概念"],
+    "tags": [
+      "插画",
+      "概念"
+    ],
     "image": "/images/works/floating-garden.jpg",
     "description": "一座离开地面三百米的花园，只在夜里开放。这个网站视觉的起点。",
     "featured": false,
@@ -36,7 +57,10 @@
     "slug": "midnight",
     "title": "午夜便利店",
     "year": "2025",
-    "tags": ["场景", "打光"],
+    "tags": [
+      "场景",
+      "打光"
+    ],
     "image": "/images/works/midnight.jpg",
     "description": "关于失眠的练习：冷白灯光与暖橙货架。",
     "featured": false,
@@ -47,7 +71,10 @@
     "slug": "type-no7",
     "title": "字体实验 No.7",
     "year": "2025",
-    "tags": ["字体", "实验"],
+    "tags": [
+      "字体",
+      "实验"
+    ],
     "image": "/images/works/type-no7.jpg",
     "description": "把笔画的端点都换成小星星的一次尝试。",
     "featured": false,
@@ -58,7 +85,10 @@
     "slug": "pixel-sea",
     "title": "像素海",
     "year": "2024",
-    "tags": ["像素", "动图"],
+    "tags": [
+      "像素",
+      "动图"
+    ],
     "image": "/images/works/pixel-sea.jpg",
     "description": "32 色调色板里的黄昏海面。",
     "featured": false,
