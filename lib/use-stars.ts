@@ -36,7 +36,14 @@ export function useStars(workIds: string[]) {
   }, [workIds.join(",")]);
 
   const giveStar = useCallback(async (slug: string) => {
-    const id = localStorage.getItem("fd-visitor") || crypto.randomUUID();
+    let id = localStorage.getItem("fd-visitor");
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `fd-${Date.now()}-${Math.random().toString(36).slice(2, 20)}`;
+      localStorage.setItem("fd-visitor", id);
+    }
     try {
       const res = await fetch(`${WORKER_URL}/star`, {
         method: "POST",

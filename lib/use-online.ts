@@ -12,7 +12,13 @@ const POLL_MS = 30_000; // 拉取人数间隔
 function getVisitorId(): string {
   let id = localStorage.getItem("fd-visitor");
   if (!id) {
-    id = crypto.randomUUID();
+    // 兼容不支持 crypto.randomUUID 的旧浏览器（如 iOS 15.3 以下）
+    id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `fd-${Date.now()}-${Math.random().toString(36).slice(2, 10)}${Math.random()
+            .toString(36)
+            .slice(2, 10)}`;
     localStorage.setItem("fd-visitor", id);
   }
   return id;
