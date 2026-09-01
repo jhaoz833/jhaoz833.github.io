@@ -31,14 +31,16 @@ export default function NavBar() {
         </Link>
         {online > 0 && (
           <div
-            className="hidden items-center gap-1.5 text-xs text-moon/80 md:flex"
+            className="flex items-center gap-1.5 text-xs text-moon/80"
             title="此刻正在岛上的旅人"
           >
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
             </span>
-            {online} 位旅人在岛上
+            {/* 手机显示极简版（光点+数字），桌面显示完整文字 */}
+            <span className="sm:hidden">{online}</span>
+            <span className="hidden sm:inline">{online} 位旅人在岛上</span>
           </div>
         )}
         <ul className="flex items-center gap-0.5 text-sm sm:gap-1">
