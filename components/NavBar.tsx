@@ -8,7 +8,7 @@ import { useOnlineCount } from "@/lib/use-online";
 const LINKS = [
   { href: "/", label: "首页" },
   { href: "/moments", label: "动态" },
-  { href: "/works", label: "作品" },
+  { href: "/works", label: "宝库" },
   { href: "/island", label: "岛屿" },
   { href: "/about", label: "关于" },
 ];

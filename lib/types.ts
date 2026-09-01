@@ -35,4 +35,7 @@ export type Work = {
   tags: string[];
   image: string;
   description: string;
+  featured?: boolean; // 策展区精选
+  acquired?: string; // 入藏日期 YYYY-MM-DD
+  origin?: string; // 来源动态 id（可选互链）
 };
