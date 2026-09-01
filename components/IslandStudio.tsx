@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import IslandAvatar, { type IslandConfig } from "@/components/IslandAvatar";
-import { loadFollow, loadIslandConfig, saveFollow, saveIslandConfig } from "@/lib/island-store";
+import {
+  defaultIslandConfig,
+  loadFollow,
+  loadIslandConfig,
+  loadIslandMusic,
+  saveFollow,
+  saveIslandConfig,
+  saveIslandMusic,
+} from "@/lib/island-store";
 
 const BASES = [
   { e: "🟣", n: "紫夜" },
@@ -39,37 +47,22 @@ const ROWS = [
   { label: "伙伴", key: "pet" as const, opts: PETS },
 ];
 
-function hashName(s: string): number {
-  let h = 7;
-  for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return h;
-}
-
-function defaultConfig(seed: string): IslandConfig {
-  const h = hashName(seed || "guest");
-  return {
-    base: h % 4,
-    plant: (h >> 2) % 3,
-    building: (h >> 4) % 3,
-    ring: (h >> 6) % 3,
-    pet: (h >> 8) % 3,
-  };
-}
-
 function loadConfig(seed: string): IslandConfig {
   const saved = loadIslandConfig();
   if (saved) return saved;
-  return defaultConfig(seed);
+  return defaultIslandConfig(seed);
 }
 
 export default function IslandStudio({ seed }: { seed: string }) {
-  const [cfg, setCfg] = useState<IslandConfig>(() => defaultConfig(seed));
+  const [cfg, setCfg] = useState<IslandConfig>(() => defaultIslandConfig(seed));
   const [follow, setFollow] = useState(false);
+  const [music, setMusic] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     setCfg(loadConfig(seed));
     setFollow(loadFollow());
+    setMusic(loadIslandMusic());
     setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed]);
@@ -85,6 +78,12 @@ export default function IslandStudio({ seed }: { seed: string }) {
     saveFollow(next);
     // 开启跟随时，若本机还没有保存过小岛配置，把当前展示的这座一并存下
     if (next && !loadIslandConfig()) saveIslandConfig(cfg);
+  };
+
+  const toggleMusic = () => {
+    const next = !music;
+    setMusic(next);
+    saveIslandMusic(next);
   };
 
   const randomize = () => {
@@ -128,8 +127,8 @@ export default function IslandStudio({ seed }: { seed: string }) {
           ))}
         </div>
 
-        <div className="mt-5 rounded-2xl bg-white/5 p-3.5 ring-1 ring-white/10">
-          <div className="flex items-center justify-between">
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3.5 ring-1 ring-white/10">
             <div>
               <p className="text-sm text-star">🪐 一键跟随</p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-moon/70">
@@ -148,6 +147,32 @@ export default function IslandStudio({ seed }: { seed: string }) {
               <span
                 className={`absolute top-0.5 h-6 w-6 rounded-full bg-star shadow transition-all ${
                   follow ? "left-[1.6rem] bg-gold" : "left-0.5"
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3.5 ring-1 ring-white/10">
+            <div>
+              <p className="text-sm text-star">♪ 岛上音乐</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-moon/70">
+                {music
+                  ? "点小岛菜单里的 ♪ 音乐，音乐卡片会飘在小岛旁边"
+                  : "开启后，小岛的功能菜单会出现音乐项"}
+              </p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={music}
+              aria-label="岛上音乐开关"
+              onClick={toggleMusic}
+              className={`relative h-7 w-[3.25rem] shrink-0 rounded-full ring-1 transition ${
+                music ? "bg-aurora/25 ring-aurora/50" : "bg-white/5 ring-white/15"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-6 w-6 rounded-full bg-star shadow transition-all ${
+                  music ? "left-[1.6rem] bg-aurora" : "left-0.5"
                 }`}
               />
             </button>

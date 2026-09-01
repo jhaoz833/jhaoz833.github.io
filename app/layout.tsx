@@ -4,6 +4,7 @@ import Starfield from "@/components/Starfield";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import IntroGate from "@/components/IntroGate";
+import MusicPlayer from "@/components/MusicPlayer";
 
 const SITE = "https://jhaoz833.github.io";
 
@@ -54,6 +55,7 @@ export default function RootLayout({
         <NavBar />
         <main className="relative z-0">{children}</main>
         <Footer />
+        <MusicPlayer />
       </body>
     </html>
   );

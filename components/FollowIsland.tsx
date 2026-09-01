@@ -4,8 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useMotionValue } from "motion/react";
 import IslandAvatar, { type IslandConfig } from "@/components/IslandAvatar";
-import { loadFollow, loadIslandConfig, loadIslandPos, saveIslandPos } from "@/lib/island-store";
-import { onIslandCheer } from "@/lib/island-events";
+import {
+  defaultIslandConfig,
+  loadFollow,
+  loadIslandConfig,
+  loadIslandMusic,
+  loadIslandPos,
+  saveIslandPos,
+} from "@/lib/island-store";
+import {
+  broadcastIslandMoved,
+  onIslandCheer,
+  onIslandMusicVisible,
+  toggleIslandMusic,
+} from "@/lib/island-events";
 
 const BURST_STARS = 10;
 
@@ -89,7 +101,11 @@ export default function FollowIsland() {
   const [cheer, setCheer] = useState(0);
   const [murmur, setMurmur] = useState<string | null>(null);
   const [mood, setMood] = useState<Mood>("happy");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [musicVisible, setMusicVisible] = useState(false);
 
+  const rootRef = useRef<HTMLDivElement>(null);
   const moodRef = useRef<Mood>("happy");
   const draggingRef = useRef(false);
   const x = useMotionValue(0);
@@ -103,16 +119,31 @@ export default function FollowIsland() {
   useEffect(() => {
     if (!loadFollow()) return;
     const saved = loadIslandConfig();
-    if (saved) setCfg(saved);
+    setCfg(saved ?? defaultIslandConfig("guest"));
     const p = loadIslandPos();
     if (p) {
       const c = clampPos(p.x, p.y);
       x.set(c.x);
       y.set(c.y);
     }
+    setMusicEnabled(loadIslandMusic());
     changeMood(pick(MOODS));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 播放器挂靠卡片可见性 → 菜单"♪ 音乐"高亮
+  useEffect(() => onIslandMusicVisible(setMusicVisible), []);
+
+  // 点小岛外部关闭菜单
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (rootRef.current && !rootRef.current.contains(t)) setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [menuOpen]);
 
   // 监听点赞成功事件 → 开心欢呼 + 说句应景的话
   useEffect(
@@ -146,12 +177,24 @@ export default function FollowIsland() {
     return () => clearTimeout(timer);
   }, [cfg]);
 
-  // 点击小岛：冒星星 + 被摸到发呆
+  // 点击小岛：切换功能菜单
   const onPoke = () => {
     if (draggingRef.current) return; // 刚拖完不算点击
+    setMenuOpen((v) => !v);
+  };
+
+  // 菜单里的"摸摸小岛"：冒星星 + 被摸到发呆（保留原有点击趣味）
+  const onPet = () => {
     setBurst((v) => v + 1);
+    setMenuOpen(false);
     changeMood("dazed");
     setMurmur(pick(MURMURS.poke));
+  };
+
+  // 菜单里的"♪ 音乐"：唤起/收起挂靠的播放器卡片
+  const onMusic = () => {
+    setMenuOpen(false);
+    toggleIslandMusic();
   };
 
   // 心情专属漂浮动画
@@ -166,6 +209,7 @@ export default function FollowIsland() {
     <AnimatePresence>
       {cfg && (
         <motion.div
+          ref={rootRef}
           key="follow-island"
           initial={{ opacity: 0, y: 48, scale: 0.85 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -173,6 +217,52 @@ export default function FollowIsland() {
           transition={{ type: "spring", stiffness: 140, damping: 16 }}
           className="group fixed bottom-5 right-4 z-30 sm:bottom-8 sm:right-8"
         >
+          {/* 功能菜单：点小岛弹出，飘在小岛上方 */}
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                key="isle-menu"
+                initial={{ opacity: 0, y: 10, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+                className="glass absolute bottom-full right-1 mb-3 w-44 rounded-2xl p-1.5 shadow-xl"
+              >
+                <button
+                  type="button"
+                  onClick={onPet}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs text-moon transition hover:bg-white/10 hover:text-star"
+                >
+                  <span>✦</span> 摸摸小岛
+                </button>
+                {musicEnabled ? (
+                  <button
+                    type="button"
+                    onClick={onMusic}
+                    className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition hover:bg-white/10 ${
+                      musicVisible ? "text-gold" : "text-moon hover:text-star"
+                    }`}
+                  >
+                    <span>♪</span> 音乐
+                    {musicVisible && <span className="ml-auto text-[9px] text-gold">播放中</span>}
+                  </button>
+                ) : (
+                  <Link
+                    href="/island"
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs text-moon/45 transition hover:bg-white/10 hover:text-moon"
+                  >
+                    <span>♪</span> 音乐 <span className="ml-auto text-[9px]">去开启 →</span>
+                  </Link>
+                )}
+                <Link
+                  href="/island"
+                  className="mt-0.5 flex w-full items-center gap-2 rounded-xl border-t border-white/10 px-3 py-2 text-left text-xs text-moon transition hover:bg-white/10 hover:text-star"
+                >
+                  <span>🏝</span> 装修我的小岛
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <motion.div
             drag
             dragMomentum={false}
@@ -185,6 +275,7 @@ export default function FollowIsland() {
               x.set(c.x);
               y.set(c.y);
               saveIslandPos(c);
+              broadcastIslandMoved(c);
               // click 在 dragEnd 之后同步触发，延后复位以吞掉误触的点击
               setTimeout(() => {
                 draggingRef.current = false;

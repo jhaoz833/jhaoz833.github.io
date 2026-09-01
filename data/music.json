@@ -1,0 +1,22 @@
+{
+  "tracks": [
+    {
+      "id": "starlight-lullaby",
+      "title": "星海摇篮",
+      "artist": "岛主 · 占位曲",
+      "cover": "/images/music/starlight-lullaby.svg",
+      "source": "local",
+      "src": "/music/starlight-lullaby.mp3",
+      "lrc": "/music/starlight-lullaby.lrc"
+    },
+    {
+      "id": "misty-isle-morning",
+      "title": "雾岛晨光",
+      "artist": "岛主 · 占位曲",
+      "cover": "/images/music/misty-isle-morning.svg",
+      "source": "local",
+      "src": "/music/misty-isle-morning.mp3",
+      "lrc": "/music/misty-isle-morning.lrc"
+    }
+  ]
+}
