@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
+import { useOnlineCount } from "@/lib/use-online";
 
 const LINKS = [
   { href: "/", label: "首页" },
@@ -14,6 +15,7 @@ const LINKS = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  const online = useOnlineCount();
 
   return (
     <motion.header
@@ -27,6 +29,18 @@ export default function NavBar() {
           <span className="text-gold">✦</span>
           <span className="hidden sm:inline">浮岛</span>
         </Link>
+        {online > 0 && (
+          <div
+            className="hidden items-center gap-1.5 text-xs text-moon/80 md:flex"
+            title="此刻正在岛上的旅人"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
+            </span>
+            {online} 位旅人在岛上
+          </div>
+        )}
         <ul className="flex items-center gap-0.5 text-sm sm:gap-1">
           {LINKS.map((l) => {
             const active = pathname === l.href;
