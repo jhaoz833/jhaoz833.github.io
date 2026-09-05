@@ -339,8 +339,18 @@ const autostartDoneRef = useRef(false);
   }, [lines, time]);
 
   const activeRef = useRef<HTMLParagraphElement>(null);
+  const lyricBoxRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const box = lyricBoxRef.current;
+    const line = activeRef.current;
+    if (!box || !line) return;
+    // 只滚动歌词容器（不牵动页面），把当前句滑到面板垂直正中
+    const cr = box.getBoundingClientRect();
+    const lr = line.getBoundingClientRect();
+    const delta = lr.top + lr.height / 2 - (cr.top + cr.height / 2);
+    if (Math.abs(delta) > 2) {
+      box.scrollTo({ top: box.scrollTop + delta, behavior: "smooth" });
+    }
   }, [activeLine]);
 
   // 移动端适配
@@ -441,7 +451,10 @@ const autostartDoneRef = useRef(false);
   );
 
   const lyricPanel = lyOpen && (
-    <div className="animate-music-float absolute bottom-full left-0 right-0 z-10 mb-4 max-h-64 overflow-y-auto">
+    <div
+      ref={lyricBoxRef}
+      className="animate-music-float absolute bottom-full left-0 right-0 z-10 mb-4 max-h-64 overflow-y-auto [mask-image:linear-gradient(transparent_0%,black_16%,black_84%,transparent_100%)]"
+    >
       {lines.length === 0 ? (
         <p className="py-4 text-center text-xs text-moon/70">这首还没有歌词</p>
       ) : (
