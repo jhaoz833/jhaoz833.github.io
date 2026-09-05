@@ -1,12 +1,29 @@
 {
   "tracks": [
     {
+      "id": "everytime",
+      "title": "Everytime",
+      "artist": "宋雨琦 (YUQI) & MINNIE",
+      "cover": "/images/music/everytime.svg",
+      "source": "local",
+      "src": "/music/everytime.mp3",
+      "lrc": "/music/everytime.lrc"
+    },
+    {
       "id": "mono",
       "title": "Mono (Feat. Skaiwater) · 试听",
       "artist": "(G)I-DLE",
       "cover": "/images/music/mono.svg",
       "source": "local",
       "src": "/music/mono.mp3"
+    },
+    {
+      "id": "mono-full",
+      "title": "Mono (Feat. Skaiwater)",
+      "artist": "(G)I-DLE",
+      "cover": "/images/music/mono.svg",
+      "source": "local",
+      "src": "/music/mono-full.mp3"
     },
     {
       "id": "starlight-lullaby",

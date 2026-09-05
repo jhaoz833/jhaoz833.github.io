@@ -14,7 +14,6 @@ import type { LrcLine, Track } from "@/lib/music";
 
 const tracks = (tracksData as { tracks: Track[] }).tracks;
 const POS_KEY = "fudao.music.pos";
-const TRACK_KEY = "fudao.music.track";
 const COLLAPSED_KEY = "fudao.music.collapsed";
 
 const CARD_W = 288;
@@ -129,11 +128,6 @@ export default function MusicPlayer() {
       a.pause();
       setPlaying(false);
     }
-    try {
-      localStorage.setItem(TRACK_KEY, t.id);
-    } catch {
-      /* 隐私模式下忽略 */
-    }
   }, [getAudio]);
 
   const loadTrackRef = useRef(loadTrack);
@@ -162,15 +156,21 @@ export default function MusicPlayer() {
     };
   }, [getAudio]);
 
-  // 记住上次听的曲目
+  // 打开网站后的第一次点击（进岛门/页面任意处）即开始播放第一首。
+// 浏览器不允许无手势自动播放，这个手势正好是最自然的时机。
+const autostartDoneRef = useRef(false);
   useEffect(() => {
-    try {
-      const savedId = localStorage.getItem(TRACK_KEY);
-      const i = tracks.findIndex((t) => t.id === savedId);
-      if (i >= 0) loadTrack(i, false);
-    } catch {
-      /* ignore */
-    }
+    const start = (e: PointerEvent) => {
+      if (autostartDoneRef.current) return;
+      const t = e.target as HTMLElement | null;
+      if (t && t.closest("[data-music-player]")) return; // 用户在直接操作播放器
+      autostartDoneRef.current = true;
+      const a = audioRef.current;
+      if (a && a.src && !a.paused) return; // 已经在播
+      loadTrackRef.current(0, true);
+    };
+    document.addEventListener("pointerdown", start, true);
+    return () => document.removeEventListener("pointerdown", start, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -510,6 +510,7 @@ export default function MusicPlayer() {
       animate={{ opacity: 1, x: 0, scale: 1 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       style={attachedStyle}
+      data-music-player
       className="glass card-glow fixed z-40 w-72 rounded-2xl p-3.5 select-none"
     >
       <div className="flex items-center gap-1">
@@ -567,10 +568,11 @@ export default function MusicPlayer() {
       return attachedCard;
     }
     if (collapsed) {
-      return <div className="fixed bottom-24 left-6 z-40">{isleToggle}</div>;
+      return <div data-music-player className="fixed bottom-24 left-6 z-40">{isleToggle}</div>;
     }
     return (
       <motion.div
+        data-music-player
         drag
         dragMomentum={false}
         dragConstraints={constraints}
@@ -641,10 +643,10 @@ export default function MusicPlayer() {
     return attachedCard;
   }
   if (collapsed) {
-    return <div className="fixed bottom-4 right-4 z-40">{isleToggle}</div>;
+    return <div data-music-player className="fixed bottom-4 right-4 z-40">{isleToggle}</div>;
   }
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-abyss/85 backdrop-blur-xl">
+    <div data-music-player className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-abyss/85 backdrop-blur-xl">
       <ProgressBar time={time} dur={dur} onSeek={onSeek} />
       <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-2.5">
         <div className="min-w-0 flex-1">{info}</div>
