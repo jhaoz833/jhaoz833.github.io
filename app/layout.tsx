@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource/noto-serif-sc/900.css";
 import "./globals.css";
 import Starfield from "@/components/Starfield";
 import NavBar from "@/components/NavBar";
@@ -51,6 +52,8 @@ export default function RootLayout({
           <div className="nebula nebula-blue" />
           <div className="nebula nebula-gold" />
         </div>
+        <div aria-hidden className="bg-vignette pointer-events-none fixed inset-0 -z-[5]" />
+        <div aria-hidden className="bg-grain pointer-events-none fixed inset-0 -z-[4]" />
         <IntroGate />
         <NavBar />
         <main className="relative z-0">{children}</main>

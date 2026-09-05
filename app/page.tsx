@@ -24,6 +24,39 @@ export default function HomePage() {
     <div>
       {/* Hero */}
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
+        {/* 星海地平线：云海剪影 + 极光缘，撑起画面下部 */}
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-48">
+          <svg viewBox="0 0 1440 192" preserveAspectRatio="none" className="h-full w-full">
+            <defs>
+              <linearGradient id="hz-glow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#8ea2ff" stopOpacity="0.16" />
+                <stop offset="1" stopColor="#8ea2ff" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="hz-mist" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#141a3a" stopOpacity="0.85" />
+                <stop offset="1" stopColor="#04050d" stopOpacity="1" />
+              </linearGradient>
+              <linearGradient id="hz-mist2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#0a0e24" stopOpacity="0.95" />
+                <stop offset="1" stopColor="#04050d" stopOpacity="1" />
+              </linearGradient>
+            </defs>
+            <ellipse cx="360" cy="196" rx="640" ry="86" fill="url(#hz-glow)" />
+            <ellipse cx="1080" cy="200" rx="680" ry="94" fill="url(#hz-glow)" opacity="0.7" />
+            <path
+              d="M0 148 Q 170 122 350 140 T 710 132 T 1070 144 T 1440 128 L1440 192 L0 192 Z"
+              fill="url(#hz-mist)"
+            />
+            <path
+              d="M0 166 Q 220 148 440 160 T 880 154 T 1440 150 L1440 192 L0 192 Z"
+              fill="url(#hz-mist2)"
+            />
+            <circle cx="250" cy="118" r="1.4" fill="#e9ecff" opacity="0.8" />
+            <circle cx="520" cy="96" r="1.1" fill="#f5d9a0" opacity="0.7" />
+            <circle cx="890" cy="108" r="1.3" fill="#e9ecff" opacity="0.75" />
+            <circle cx="1210" cy="90" r="1.2" fill="#b39dff" opacity="0.7" />
+          </svg>
+        </div>
         <motion.span
           className="absolute left-[16%] top-[28%] text-lg text-gold/80"
           animate={{ y: [0, -10, 0], opacity: [0.4, 1, 0.4] }}
@@ -56,7 +89,7 @@ export default function HomePage() {
         </motion.p>
 
         <motion.h1
-          className="gradient-text text-glow text-7xl font-bold tracking-[0.18em] sm:text-8xl"
+          className="gradient-text text-glow font-display text-7xl font-black tracking-[0.22em] sm:text-8xl"
           initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ delay: 0.55, duration: 1.1, ease: [0.22, 1, 0.36, 1] }}

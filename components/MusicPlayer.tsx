@@ -363,8 +363,8 @@ export default function MusicPlayer() {
         className="h-11 w-11 shrink-0 rounded-lg object-cover ring-1 ring-white/10"
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-star">{track.title}</p>
-        <p className="truncate text-[11px] text-moon/80">{track.artist}</p>
+        <p className="line-clamp-2 text-[13px] font-medium leading-tight text-star">{track.title}</p>
+        <p className="mt-0.5 truncate text-[11px] text-moon/80">{track.artist}</p>
       </div>
     </div>
   );

@@ -57,7 +57,7 @@ export default function AboutPage() {
           alt="浮岛站长头像"
           className="h-28 w-28 rounded-full shadow-[0_0_40px_-8px_rgba(142,162,255,0.6)] ring-2 ring-aurora/30"
         />
-        <h1 className="gradient-text mt-5 text-3xl font-bold">浮岛站长</h1>
+        <h1 className="gradient-text font-display mt-5 text-3xl font-black tracking-[0.12em]">浮岛站长</h1>
         <p className="mt-2 text-sm tracking-widest text-moon">设计师 / 创作者 · 岛主</p>
       </div>
 
