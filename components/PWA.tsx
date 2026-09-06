@@ -1,59 +1,55 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type InstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
+import { captureInstallPrompt, promptInstall, useCanInstall } from "@/lib/use-install";
 
 const DISMISS_KEY = "fudao-pwa-dismiss";
 
 /**
  * PWA 装配：注册 Service Worker；捕获安装事件弹出"安装浮岛"提示；
  * iOS 无安装事件，改引导"添加到主屏幕"。均可关闭并记住。
+ * 导航栏的 📲 按钮与本条提示共享同一个安装事件（lib/use-install.ts）。
  */
 export default function PWA() {
-  const [installEvt, setInstallEvt] = useState<InstallPromptEvent | null>(null);
+  const canInstall = useCanInstall();
   const [showIOS, setShowIOS] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
+    setReady(true);
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
 
-    let dismissed = false;
+    let dismissedSaved = false;
     try {
-      dismissed = localStorage.getItem(DISMISS_KEY) === "1";
+      dismissedSaved = localStorage.getItem(DISMISS_KEY) === "1";
     } catch {
       /* ignore */
     }
+    setDismissed(dismissedSaved);
 
-    const onInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallEvt(e as InstallPromptEvent);
-      if (!dismissed) setVisible(true);
-    };
-    window.addEventListener("beforeinstallprompt", onInstallPrompt);
+    const onPrompt = (e: Event) => captureInstallPrompt(e);
+    window.addEventListener("beforeinstallprompt", onPrompt);
 
     // iOS：没有安装事件，检测未安装状态给一次性引导
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const standalone = window.matchMedia("(display-mode: standalone)").matches;
-    if (isIOS && !standalone && !dismissed) {
-      const t = setTimeout(() => setShowIOS(true), 4000);
-      return () => {
-        window.removeEventListener("beforeinstallprompt", onInstallPrompt);
-        clearTimeout(t);
-      };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (isIOS && !standalone && !dismissedSaved) {
+      timer = setTimeout(() => setShowIOS(true), 4000);
     }
-    return () => window.removeEventListener("beforeinstallprompt", onInstallPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   const close = () => {
-    setVisible(false);
+    setDismissed(true);
     try {
       localStorage.setItem(DISMISS_KEY, "1");
     } catch {
@@ -62,18 +58,17 @@ export default function PWA() {
   };
 
   const install = async () => {
-    if (!installEvt) return;
-    await installEvt.prompt();
-    await installEvt.userChoice;
-    setVisible(false);
+    await promptInstall();
+    setDismissed(true);
   };
 
-  if (!visible || process.env.NODE_ENV !== "production") return null;
+  const showChip = ready && !dismissed && (canInstall || showIOS);
+  if (!showChip) return null;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-4 sm:bottom-6">
       <div className="glass pointer-events-auto flex items-center gap-3 rounded-full py-2 pl-4 pr-2 shadow-xl">
-        {installEvt ? (
+        {canInstall ? (
           <>
             <span className="text-sm text-star">📲 把浮岛安装到桌面，离线也能听歌</span>
             <button

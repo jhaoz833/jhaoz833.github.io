@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { useOnlineCount } from "@/lib/use-online";
+import { promptInstall, useCanInstall } from "@/lib/use-install";
 
 const LINKS = [
   { href: "/", label: "首页" },
@@ -16,6 +18,18 @@ const LINKS = [
 export default function NavBar() {
   const pathname = usePathname();
   const online = useOnlineCount();
+  const canInstall = useCanInstall();
+  const [isIOS, setIsIOS] = useState(false);
+  const [standalone, setStandalone] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+
+  useEffect(() => {
+    setIsIOS(/iphone|ipad|ipod/i.test(navigator.userAgent));
+    setStandalone(window.matchMedia("(display-mode: standalone)").matches);
+  }, []);
+
+  // 常驻安装入口：可安装（Chromium）或 iPhone（走引导）时显示，装好即隐藏
+  const showInstallBtn = !standalone && (canInstall || isIOS);
 
   return (
     <motion.header
@@ -43,7 +57,29 @@ export default function NavBar() {
             <span className="hidden sm:inline">{online} 位旅人在岛上</span>
           </div>
         )}
-        <ul className="flex items-center gap-0.5 text-sm sm:gap-1">
+        <div className="flex items-center gap-2">
+          {showInstallBtn && (
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="安装浮岛 App"
+                title={canInstall ? "安装浮岛 App" : "iPhone 添加到主屏幕"}
+                onClick={() => (canInstall ? promptInstall() : setShowGuide((v) => !v))}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-moon transition hover:bg-white/10 hover:text-star"
+              >
+                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12 3v11m0 0l-4-4m4 4l4-4" />
+                  <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+                </svg>
+              </button>
+              {showGuide && !canInstall && (
+                <div className="glass absolute right-0 top-full mt-2 w-56 rounded-xl p-3 text-[11px] leading-relaxed text-star/90">
+                  在 Safari 底部分享菜单中选择「添加到主屏幕」，即可把浮岛装进手机。
+                </div>
+              )}
+            </div>
+          )}
+          <ul className="flex items-center gap-0.5 text-sm sm:gap-1">
           {LINKS.map((l) => {
             const active = pathname === l.href;
             return (
@@ -66,7 +102,8 @@ export default function NavBar() {
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </div>
       </nav>
     </motion.header>
   );
