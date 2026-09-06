@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import IntroGate from "@/components/IntroGate";
 import MusicPlayer from "@/components/MusicPlayer";
+import PWA from "@/components/PWA";
 
 const SITE = "https://jhaoz833.github.io";
 
@@ -16,6 +17,12 @@ export const metadata: Metadata = {
     template: "%s · 浮岛",
   },
   description: "漂浮在星海里的个人小岛——收藏图片、文字与心情。GitHub 账号即可上岛，点亮动态、装修你的专属小岛。",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "浮岛",
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     type: "website",
     siteName: "浮岛 · Floating Island",
@@ -31,7 +38,13 @@ export const metadata: Metadata = {
     images: ["/images/invite-cover.jpg"],
   },
   alternates: { canonical: "/" },
-  icons: { icon: "/icon.svg" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -59,6 +72,7 @@ export default function RootLayout({
         <main className="relative z-0">{children}</main>
         <Footer />
         <MusicPlayer />
+        <PWA />
       </body>
     </html>
   );
