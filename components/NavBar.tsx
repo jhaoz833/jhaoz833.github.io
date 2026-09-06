@@ -28,8 +28,8 @@ export default function NavBar() {
     setStandalone(window.matchMedia("(display-mode: standalone)").matches);
   }, []);
 
-  // 常驻安装入口：可安装（Chromium）或 iPhone（走引导）时显示，装好即隐藏
-  const showInstallBtn = !standalone && (canInstall || isIOS);
+  // 常驻安装入口：未安装时始终显示（点击按平台给引导），装好即隐藏
+  const showInstallBtn = !standalone;
 
   return (
     <motion.header
@@ -65,7 +65,9 @@ export default function NavBar() {
                 aria-label="安装浮岛 App"
                 title={canInstall ? "安装浮岛 App" : "iPhone 添加到主屏幕"}
                 onClick={() => (canInstall ? promptInstall() : setShowGuide((v) => !v))}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-moon transition hover:bg-white/10 hover:text-star"
+                className={`flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-white/10 ${
+                  canInstall ? "text-aurora hover:text-aurora" : "text-moon hover:text-star"
+                }`}
               >
                 <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M12 3v11m0 0l-4-4m4 4l4-4" />
@@ -73,8 +75,15 @@ export default function NavBar() {
                 </svg>
               </button>
               {showGuide && !canInstall && (
-                <div className="glass absolute right-0 top-full mt-2 w-56 rounded-xl p-3 text-[11px] leading-relaxed text-star/90">
-                  在 Safari 底部分享菜单中选择「添加到主屏幕」，即可把浮岛装进手机。
+                <div className="glass absolute right-0 top-full mt-2 w-64 rounded-xl p-3 text-[11px] leading-relaxed text-star/90">
+                  {isIOS ? (
+                    <>在 Safari 底部分享菜单中选择「添加到主屏幕」，即可把浮岛装进手机。</>
+                  ) : (
+                    <>
+                      用 <b>Chrome / Edge</b> 打开浮岛，地址栏右侧会出现安装图标，点击即可装成桌面应用；
+                      iPhone 用户请在 Safari 分享菜单中选择「添加到主屏幕」。
+                    </>
+                  )}
                 </div>
               )}
             </div>
