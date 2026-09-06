@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import tracksData from "@/data/music.json";
-import { formatTime, parseLrc } from "@/lib/music";
+import { formatTime, parseLrc, searchLrclib } from "@/lib/music";
 import {
   broadcastMusicVisible,
   onIslandMoved,
   onIslandMusicToggle,
 } from "@/lib/island-events";
 import { loadIslandPos } from "@/lib/island-store";
-import type { LrcLine, Track } from "@/lib/music";
+import type { LrcLine, LrcSearchResult, Track } from "@/lib/music";
 
 const tracks = (tracksData as { tracks: Track[] }).tracks;
 const POS_KEY = "fudao.music.pos";
@@ -94,6 +94,76 @@ export default function MusicPlayer() {
   useEffect(() => {
     attachedOpenRef.current = attachedOpen;
   }, [attachedOpen]);
+
+  // 歌词伴唱模式：音乐在访客自己的播放器里放，浮岛当逐句歌词灯牌
+  const [companion, setCompanion] = useState<{
+    trackName: string;
+    artistName: string;
+    duration: number;
+    lines: LrcLine[];
+  } | null>(null);
+  const [companionPlaying, setCompanionPlaying] = useState(false);
+  const [companionTime, setCompanionTime] = useState(0);
+  const [companionSearchOpen, setCompanionSearchOpen] = useState(false);
+  const [companionQuery, setCompanionQuery] = useState("");
+  const [companionResults, setCompanionResults] = useState<LrcSearchResult[] | null>(null);
+  const [companionSearching, setCompanionSearching] = useState(false);
+  const companionDurationRef = useRef(0);
+
+  // 伴唱虚拟时钟：真实时间推进（音频在站外播放）
+  useEffect(() => {
+    if (!companionPlaying) return;
+    let last = performance.now();
+    const id = window.setInterval(() => {
+      const now = performance.now();
+      const dt = (now - last) / 1000;
+      last = now;
+      setCompanionTime((t) => {
+        const limit = companionDurationRef.current;
+        const nt = limit > 0 ? Math.min(limit, t + dt) : t + dt;
+        if (limit > 0 && nt >= limit) setCompanionPlaying(false);
+        return nt;
+      });
+    }, 200);
+    return () => window.clearInterval(id);
+  }, [companionPlaying]);
+
+  const startCompanion = (r: LrcSearchResult) => {
+    audioRef.current?.pause();
+    setPlaying(false);
+    const lines: LrcLine[] = r.syncedLyrics
+      ? parseLrc(r.syncedLyrics)
+      : (r.plainLyrics ?? "")
+          .split(/\r?\n/)
+          .filter(Boolean)
+          .map((text) => ({ time: 0, text }));
+    companionDurationRef.current = Math.round(r.duration);
+    setCompanion({
+      trackName: r.trackName,
+      artistName: r.artistName,
+      duration: Math.round(r.duration),
+      lines,
+    });
+    setCompanionTime(0);
+    setCompanionPlaying(Boolean(r.syncedLyrics));
+    setCompanionSearchOpen(false);
+    setCompanionResults(null);
+  };
+
+  const exitCompanion = () => {
+    setCompanion(null);
+    setCompanionPlaying(false);
+    setCompanionTime(0);
+    setCompanionSearchOpen(false);
+  };
+
+  const doCompanionSearch = async () => {
+    const q = companionQuery.trim();
+    if (!q) return;
+    setCompanionSearching(true);
+    setCompanionResults(await searchLrclib(q));
+    setCompanionSearching(false);
+  };
 
   const track = tracks[idx] ?? tracks[0];
 
@@ -329,14 +399,16 @@ const autostartDoneRef = useRef(false);
     broadcastMusicVisible(false);
   };
 
+  const shownLines = companion ? companion.lines : lines;
+  const shownTime = companion ? companionTime : time;
   const activeLine = useMemo(() => {
     let last = -1;
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].time <= time + 0.3) last = i;
+    for (let i = 0; i < shownLines.length; i++) {
+      if (shownLines[i].time <= shownTime + 0.3) last = i;
       else break;
     }
     return last;
-  }, [lines, time]);
+  }, [shownLines, shownTime]);
 
   const activeRef = useRef<HTMLParagraphElement>(null);
   const lyricBoxRef = useRef<HTMLDivElement>(null);
@@ -375,6 +447,17 @@ const autostartDoneRef = useRef(false);
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-[13px] font-medium leading-tight text-star">{track.title}</p>
         <p className="mt-0.5 truncate text-[11px] text-moon/80">{track.artist}</p>
+        {track.external && (
+          <a
+            href={track.external}
+            target="_blank"
+            rel="noreferrer"
+            onPointerDown={(e) => e.stopPropagation()}
+            className="mt-0.5 inline-block text-[10px] text-gold/90 transition hover:text-gold hover:underline"
+          >
+            ↗ {track.externalLabel ?? "去外部平台听完整版"}
+          </a>
+        )}
       </div>
     </div>
   );
@@ -455,22 +538,139 @@ const autostartDoneRef = useRef(false);
       ref={lyricBoxRef}
       className="animate-music-float absolute bottom-full left-0 right-0 z-10 mb-4 max-h-64 overflow-y-auto [mask-image:linear-gradient(transparent_0%,black_16%,black_84%,transparent_100%)]"
     >
-      {lines.length === 0 ? (
-        <p className="py-4 text-center text-xs text-moon/70">这首还没有歌词</p>
-      ) : (
-        <div className="space-y-2.5 py-2">
-          {lines.map((l, i) => (
-            <p
-              key={`${l.time}-${i}`}
-              ref={i === activeLine ? activeRef : undefined}
-              className={`text-xs leading-relaxed transition-[color,text-shadow] duration-500 ${
-                i === activeLine ? "lyric-active" : "text-moon/60"
-              }`}
+      {companion ? (
+        <>
+          {/* 伴唱控制条：虚拟时钟走歌词，音频在访客自己的播放器里 */}
+          <div
+            className="sticky top-0 z-10 mb-1 flex items-center gap-2 rounded-b-xl bg-mist/95 px-2.5 py-1.5 shadow-lg backdrop-blur"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label={companionPlaying ? "暂停伴唱" : "开始伴唱"}
+              onClick={() => setCompanionPlaying((v) => !v)}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-aurora text-[10px] text-void transition hover:brightness-110"
             >
-              {l.text}
-            </p>
-          ))}
+              {companionPlaying ? "❚❚" : "▶"}
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] font-medium text-star">{companion.trackName}</p>
+              <p className="truncate text-[10px] text-moon/70">
+                {companion.artistName} · {formatTime(companionTime)}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="退出伴唱"
+              title="退出伴唱"
+              onClick={exitCompanion}
+              className={tinyBtn}
+            >
+              ✕
+            </button>
+          </div>
+          <div className="space-y-2.5 py-2">
+            {companion.lines.length === 0 ? (
+              <p className="py-4 text-center text-xs text-moon/70">这首歌没有歌词</p>
+            ) : (
+              companion.lines.map((l, i) => (
+                <p
+                  key={`c-${l.time}-${i}`}
+                  ref={i === activeLine ? activeRef : undefined}
+                  onClick={() => l.time > 0 && setCompanionTime(l.time)}
+                  title={l.time > 0 ? "点击对齐到这句" : undefined}
+                  className={`text-xs leading-relaxed transition-[color,text-shadow] duration-500 ${
+                    i === activeLine ? "lyric-active" : "text-moon/60"
+                  } ${l.time > 0 ? "cursor-pointer" : ""}`}
+                >
+                  {l.text}
+                </p>
+              ))
+            )}
+          </div>
+        </>
+      ) : companionSearchOpen ? (
+        /* 伴唱搜索：从 LRCLIB 开放歌词库找正在听的歌 */
+        <div className="rounded-xl bg-mist/60 p-2" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="flex gap-1.5">
+            <input
+              value={companionQuery}
+              onChange={(e) => setCompanionQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && doCompanionSearch()}
+              placeholder="输入正在听的歌名…"
+              className="min-w-0 flex-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs text-star placeholder:text-moon/50 focus:outline-none focus:ring-1 focus:ring-aurora/50"
+            />
+            <button
+              type="button"
+              onClick={doCompanionSearch}
+              className="rounded-lg bg-aurora px-3 text-xs font-medium text-void transition hover:brightness-110"
+            >
+              搜索
+            </button>
+          </div>
+          <div className="mt-2 space-y-1">
+            {companionSearching && (
+              <p className="py-2 text-center text-xs text-moon/70">在歌词库里搜索…</p>
+            )}
+            {!companionSearching && companionResults && companionResults.length === 0 && (
+              <p className="py-2 text-center text-xs text-moon/70">没找到，换个关键词试试</p>
+            )}
+            {companionResults?.slice(0, 6).map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => startCompanion(r)}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-white/10"
+              >
+                <span className="min-w-0 flex-1 truncate text-xs text-star">{r.trackName}</span>
+                <span className="shrink-0 truncate text-[10px] text-moon/70">{r.artistName}</span>
+                <span
+                  className={`shrink-0 text-[9px] ${r.syncedLyrics ? "text-gold" : "text-moon/40"}`}
+                >
+                  {r.syncedLyrics ? "逐句" : "无时间轴"}
+                </span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setCompanionSearchOpen(false)}
+            className="mt-1 w-full rounded-lg py-1 text-[11px] text-moon/70 transition hover:text-star"
+          >
+            取消
+          </button>
         </div>
+      ) : (
+        <>
+          <div className="space-y-2.5 py-2">
+            {shownLines.length === 0 ? (
+              <p className="py-4 text-center text-xs text-moon/70">这首还没有歌词</p>
+            ) : (
+              shownLines.map((l, i) => (
+                <p
+                  key={`${l.time}-${i}`}
+                  ref={i === activeLine ? activeRef : undefined}
+                  className={`text-xs leading-relaxed transition-[color,text-shadow] duration-500 ${
+                    i === activeLine ? "lyric-active" : "text-moon/60"
+                  }`}
+                >
+                  {l.text}
+                </p>
+              ))
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setCompanionSearchOpen(true);
+              setCompanionQuery("");
+              setCompanionResults(null);
+            }}
+            className="mb-1 mt-2 w-full rounded-lg bg-white/5 py-1.5 text-[11px] text-moon transition hover:bg-white/10 hover:text-star"
+          >
+            🎤 伴唱模式：边听自己的歌，边看逐句歌词
+          </button>
+        </>
       )}
     </div>
   );

@@ -14,6 +14,9 @@ export interface Track {
   term?: string;
   /** netease 模式：外链曲目 id（2 期歌本页用） */
   neteaseId?: string;
+  /** 版权曲目的完整版外链（如 QQ 音乐歌曲页/搜索页），站点只放试听 */
+  external?: string;
+  externalLabel?: string;
 }
 
 export interface LrcLine {
@@ -48,4 +51,27 @@ export function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+export interface LrcSearchResult {
+  id: number;
+  trackName: string;
+  artistName: string;
+  albumName?: string;
+  duration: number;
+  instrumental?: boolean;
+  plainLyrics?: string | null;
+  syncedLyrics?: string | null;
+}
+
+/** LRCLIB 开放歌词库搜索：免费、无需密钥、支持跨域 */
+export async function searchLrclib(query: string): Promise<LrcSearchResult[]> {
+  try {
+    const res = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) return [];
+    const data = (await res.json()) as LrcSearchResult[];
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }

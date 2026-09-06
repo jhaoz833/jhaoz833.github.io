@@ -7,7 +7,9 @@
       "cover": "/images/music/everytime.svg",
       "source": "local",
       "src": "/music/everytime.mp3",
-      "lrc": "/music/everytime.lrc"
+      "lrc": "/music/everytime.lrc",
+      "external": "https://y.qq.com/n/ryqq/search?w=Everytime%20%E5%AE%8B%E9%9B%A8%E7%90%A6%20MINNIE",
+      "externalLabel": "去 QQ 音乐听完整版"
     },
     {
       "id": "mono",
@@ -15,7 +17,9 @@
       "artist": "(G)I-DLE",
       "cover": "/images/music/mono.svg",
       "source": "local",
-      "src": "/music/mono.mp3"
+      "src": "/music/mono.mp3",
+      "external": "https://y.qq.com/n/ryqq/search?w=Mono%20%28G%29I-DLE",
+      "externalLabel": "去 QQ 音乐听完整版"
     },
     {
       "id": "mono-full",
@@ -23,7 +27,9 @@
       "artist": "(G)I-DLE",
       "cover": "/images/music/mono.svg",
       "source": "local",
-      "src": "/music/mono-full.mp3"
+      "src": "/music/mono-full.mp3",
+      "external": "https://y.qq.com/n/ryqq/search?w=Mono%20%28G%29I-DLE",
+      "externalLabel": "去 QQ 音乐听完整版"
     },
     {
       "id": "starlight-lullaby",
