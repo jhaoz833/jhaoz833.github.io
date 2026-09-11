@@ -22,11 +22,22 @@ export default function NavBar() {
   const [isIOS, setIsIOS] = useState(false);
   const [standalone, setStandalone] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setIsIOS(/iphone|ipad|ipod/i.test(navigator.userAgent));
     setStandalone(window.matchMedia("(display-mode: standalone)").matches);
   }, []);
+
+  const copySiteUrl = async () => {
+    try {
+      await navigator.clipboard.writeText("https://jhaoz833.github.io");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* 剪贴板不可用时忽略 */
+    }
+  };
 
   // 常驻安装入口：未安装时始终显示（点击按平台给引导），装好即隐藏
   const showInstallBtn = !standalone;
@@ -75,13 +86,23 @@ export default function NavBar() {
                 </svg>
               </button>
               {showGuide && !canInstall && (
-                <div className="glass absolute right-0 top-full mt-2 w-64 rounded-xl p-3 text-[11px] leading-relaxed text-star/90">
+                <div className="glass absolute right-0 top-full mt-2 w-72 rounded-xl p-3 text-[11px] leading-relaxed text-star/90">
                   {isIOS ? (
                     <>在 Safari 底部分享菜单中选择「添加到主屏幕」，即可把浮岛装进手机。</>
                   ) : (
                     <>
-                      用 <b>Chrome / Edge</b> 打开浮岛，地址栏右侧会出现安装图标，点击即可装成桌面应用；
-                      iPhone 用户请在 Safari 分享菜单中选择「添加到主屏幕」。
+                      <p>
+                        当前浏览器不支持一键安装。用 <b>Chrome / Edge</b> 打开浮岛后，
+                        地址栏右侧会出现安装图标（若刚打开没有，刷新一次页面即可触发）。
+                      </p>
+                      <button
+                        type="button"
+                        onClick={copySiteUrl}
+                        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs text-star transition hover:bg-white/20"
+                      >
+                        {copied ? "已复制 ✓" : "📋 复制浮岛网址"}
+                      </button>
+                      <p className="mt-1.5 text-moon/60">iPhone：Safari 分享菜单 →「添加到主屏幕」。</p>
                     </>
                   )}
                 </div>
