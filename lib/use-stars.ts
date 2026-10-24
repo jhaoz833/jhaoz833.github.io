@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect -- 已献星记录在客户端补水后读取，避免 SSR 不一致 */
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -35,7 +36,7 @@ export function useStars(workIds: string[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workIds.join(",")]);
 
-  const giveStar = useCallback(async (slug: string) => {
+  const giveStar = useCallback(async (slug: string): Promise<boolean> => {
     let id = localStorage.getItem("fd-visitor");
     if (!id) {
       id =
@@ -50,7 +51,7 @@ export function useStars(workIds: string[]) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ work: slug, id }),
       });
-      if (!res.ok) return;
+      if (!res.ok) return false;
       setStars((s) => ({ ...s, [slug]: (s[slug] || 0) + 1 }));
       setMine((m) => {
         const next = new Set(m);
@@ -58,7 +59,10 @@ export function useStars(workIds: string[]) {
         localStorage.setItem(key, JSON.stringify([...next]));
         return next;
       });
-    } catch {}
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   return { stars, mine, giveStar };

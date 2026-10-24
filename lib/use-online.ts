@@ -24,40 +24,69 @@ function getVisitorId(): string {
   return id;
 }
 
+// 多个组件（导航栏 + 小岛）共享同一份心跳与人数，避免重复请求
+let count = 0;
+const listeners = new Set<(n: number) => void>();
+let mounted = 0;
+let started = false;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+function publish(n: number) {
+  count = n;
+  listeners.forEach((l) => l(n));
+}
+
+function start() {
+  if (started || !WORKER_URL) return;
+  started = true;
+  const id = getVisitorId();
+
+  const beat = () =>
+    fetch(`${WORKER_URL}/heartbeat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+      keepalive: true,
+    }).catch(() => {});
+
+  const poll = async () => {
+    try {
+      const res = await fetch(`${WORKER_URL}/count`);
+      const data = await res.json();
+      if (typeof data.n === "number") publish(data.n);
+    } catch {
+      // 网络异常时保持上次人数
+    }
+  };
+
+  beat();
+  poll();
+  heartbeatTimer = setInterval(beat, HEARTBEAT_MS);
+  pollTimer = setInterval(poll, POLL_MS);
+}
+
+function stop() {
+  started = false;
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  if (pollTimer) clearInterval(pollTimer);
+  heartbeatTimer = null;
+  pollTimer = null;
+}
+
 export function useOnlineCount() {
-  const [count, setCount] = useState(0);
+  const [n, setN] = useState(count);
 
   useEffect(() => {
-    if (!WORKER_URL) return;
-    const id = getVisitorId();
-
-    const beat = () =>
-      fetch(`${WORKER_URL}/heartbeat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-        keepalive: true,
-      }).catch(() => {});
-
-    const poll = async () => {
-      try {
-        const res = await fetch(`${WORKER_URL}/count`);
-        const data = await res.json();
-        if (typeof data.n === "number") setCount(data.n);
-      } catch {
-        // 网络异常时保持上次人数
-      }
-    };
-
-    beat();
-    poll();
-    const hb = setInterval(beat, HEARTBEAT_MS);
-    const pc = setInterval(poll, POLL_MS);
+    listeners.add(setN);
+    mounted += 1;
+    start();
     return () => {
-      clearInterval(hb);
-      clearInterval(pc);
+      listeners.delete(setN);
+      mounted -= 1;
+      if (mounted <= 0) stop();
     };
   }, []);
 
-  return count;
+  return n;
 }

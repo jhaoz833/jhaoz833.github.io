@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect -- 安装提示依赖浏览器事件，挂载后再显示 */
 
 import { useEffect, useState } from "react";
 import { captureInstallPrompt, promptInstall, useCanInstall } from "@/lib/use-install";
@@ -66,7 +67,7 @@ export default function PWA() {
   if (!showChip) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-4 sm:bottom-6">
+    <div className="pointer-events-none fixed inset-x-0 top-20 z-30 flex justify-center px-4 sm:inset-x-auto sm:bottom-6 sm:left-6 sm:top-auto sm:justify-start sm:px-0">
       <div className="glass pointer-events-auto flex items-center gap-3 rounded-full py-2 pl-4 pr-2 shadow-xl">
         {canInstall ? (
           <>

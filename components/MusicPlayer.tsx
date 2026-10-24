@@ -1,15 +1,21 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect -- 音频/小岛事件与状态同步需要 */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import tracksData from "@/data/music.json";
 import { formatTime, parseLrc, searchLrclib } from "@/lib/music";
 import {
+  broadcastIslandLyric,
+  broadcastIslandMusicState,
+  broadcastMusicLayout,
   broadcastMusicVisible,
   onIslandMoved,
   onIslandMusicToggle,
+  onIslandPlaybackToggle,
+  onIslandPresence,
+  type IslandRect,
 } from "@/lib/island-events";
-import { loadIslandPos } from "@/lib/island-store";
 import type { LrcLine, LrcSearchResult, Track } from "@/lib/music";
 
 const tracks = (tracksData as { tracks: Track[] }).tracks;
@@ -81,13 +87,18 @@ export default function MusicPlayer() {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
+  const [viewport, setViewport] = useState({ w: 0, h: 0 });
+  const reduceMotion = Boolean(useReducedMotion());
 
   // 挂靠小岛模式：跟随小岛菜单唤起，卡片停在小岛旁边
   const [attached, setAttached] = useState(false);
   const [attachedOpen, setAttachedOpen] = useState(false);
-  const [islePos, setIslePos] = useState<{ x: number; y: number } | null>(null);
+  const [islePos, setIslePos] = useState<IslandRect | null>(null);
   const attachedRef = useRef(false);
   const attachedOpenRef = useRef(false);
+  const mobileBarRef = useRef<HTMLDivElement | null>(null);
+  const lyricOverlayRef = useRef<HTMLDivElement | null>(null);
+  const playbackToggleRef = useRef<() => void>(() => {});
   useEffect(() => {
     attachedRef.current = attached;
   }, [attached]);
@@ -211,17 +222,26 @@ export default function MusicPlayer() {
     const onTime = () => {
       setTime(a.currentTime);
       if (Number.isFinite(a.duration)) setDur(a.duration);
+      // 以媒体元素实际 paused 为准，兜住自动播放/手动操作竞态
+      setPlaying(!a.paused);
     };
     const onEnded = () => {
       loadTrackRef.current((idxRef.current + 1) % tracks.length, true);
     };
+    // 以媒体元素的实际状态为准，避免自动播放/手动点击之间的竞态让按钮显示错位
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("durationchange", onTime);
     a.addEventListener("ended", onEnded);
+    a.addEventListener("play", onPlay);
+    a.addEventListener("pause", onPause);
     return () => {
       a.removeEventListener("timeupdate", onTime);
       a.removeEventListener("durationchange", onTime);
       a.removeEventListener("ended", onEnded);
+      a.removeEventListener("play", onPlay);
+      a.removeEventListener("pause", onPause);
       a.pause();
     };
   }, [getAudio]);
@@ -249,12 +269,10 @@ const autostartDoneRef = useRef(false);
     if (audioRef.current) audioRef.current.muted = muted;
   }, [muted]);
 
-  // 歌词：切歌时重新拉取
+  // 歌词：切歌时重新拉取（先清空，避免小岛短暂显示上一首的歌词）
   useEffect(() => {
-    if (!track.lrc) {
-      setLines([]);
-      return;
-    }
+    setLines([]);
+    if (!track.lrc) return;
     let alive = true;
     fetch(track.lrc)
       .then((r) => r.text())
@@ -370,28 +388,61 @@ const autostartDoneRef = useRef(false);
         if (!attachedRef.current) {
           setAttached(true);
           setAttachedOpen(true);
-          setIslePos(loadIslandPos());
           broadcastMusicVisible(true);
         } else if (attachedOpenRef.current) {
           setAttachedOpen(false);
           broadcastMusicVisible(false);
         } else {
           setAttachedOpen(true);
-          setIslePos(loadIslandPos());
           broadcastMusicVisible(true);
         }
       }),
     []
   );
 
-  // 小岛被拖走 → 挂靠卡片跟着重排
+  // 小岛移动/避让 → 记录实际矩形，挂靠卡片跟着重排
   useEffect(
     () =>
-      onIslandMoved((p) => {
-        if (attachedRef.current && attachedOpenRef.current) setIslePos(p);
+      onIslandMoved((rect) => {
+        setIslePos(rect);
       }),
     []
   );
+
+  // 小岛离开当前页面（如从动态页去别的页）→ 自动脱离，避免卡片悬空
+  useEffect(
+    () =>
+      onIslandPresence((presence) => {
+        if (presence.visible) return;
+        if (!attachedRef.current) return;
+        setAttached(false);
+        setAttachedOpen(false);
+        broadcastMusicVisible(false);
+      }),
+    []
+  );
+
+  // 视口尺寸：挂靠卡片在旋转/缩放后重新计算
+  useEffect(() => {
+    const update = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
+    update();
+    window.addEventListener("resize", update);
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      vv?.removeEventListener("resize", update);
+    };
+  }, []);
+
+  // 点击小岛歌词气泡：播放/暂停（站内音频或伴唱虚拟时钟）
+  useEffect(() => {
+    playbackToggleRef.current = () => {
+      if (companion) setCompanionPlaying((v) => !v);
+      else togglePlay();
+    };
+  });
+  useEffect(() => onIslandPlaybackToggle(() => playbackToggleRef.current()), []);
 
   const unAttach = () => {
     setAttached(false);
@@ -410,6 +461,57 @@ const autostartDoneRef = useRef(false);
     return last;
   }, [shownLines, shownTime]);
 
+  // 播放器 → 小岛：播放态、当前歌词行、节拍
+  useEffect(() => {
+    broadcastIslandMusicState({
+      playing: companion ? companionPlaying : playing,
+      companion: Boolean(companion),
+      source: companion ? "companion" : track?.src ? "track" : null,
+    });
+  }, [companion, companionPlaying, playing, track?.src]);
+
+  const activeLyric =
+    activeLine >= 0 && (shownLines[activeLine]?.time ?? 0) > 0
+      ? shownLines[activeLine]?.text ?? ""
+      : "";
+  useEffect(() => {
+    if (!activeLyric) {
+      broadcastIslandLyric(null);
+      return;
+    }
+    broadcastIslandLyric({
+      text: activeLyric,
+      playing: companion ? companionPlaying : playing,
+      companion: Boolean(companion),
+      index: activeLine,
+      total: shownLines.length,
+    });
+  }, [activeLyric, activeLine, companion, companionPlaying, playing, shownLines.length]);
+
+  useEffect(() => {
+    const playingNow = companion ? companionPlaying : playing;
+    if (!playingNow || reduceMotion) {
+      document.documentElement.style.setProperty("--island-beat", "0");
+      return;
+    }
+    let raf = 0;
+    const tick = () => {
+      if (!document.hidden) {
+        const t = companion
+          ? performance.now() / 1000
+          : audioRef.current?.currentTime ?? 0;
+        const beat = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 * 1.6);
+        document.documentElement.style.setProperty("--island-beat", beat.toFixed(2));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.documentElement.style.setProperty("--island-beat", "0");
+    };
+  }, [companion, companionPlaying, playing, reduceMotion]);
+
   const activeRef = useRef<HTMLParagraphElement>(null);
   const lyricBoxRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -425,6 +527,30 @@ const autostartDoneRef = useRef(false);
     }
   }, [activeLine]);
 
+  // 手机底部播放条（含歌词浮层/歌单）的实际高度 → 小岛抬到它上方
+  useEffect(() => {
+    if (isDesktop || (attached && attachedOpen) || collapsed) {
+      broadcastMusicLayout({
+        mode: isDesktop ? "hidden" : attached && attachedOpen ? "card" : "toggle",
+        height: 0,
+      });
+      return;
+    }
+    const bar = mobileBarRef.current;
+    if (!bar) return;
+    const overlay = lyricOverlayRef.current;
+    const measure = () => {
+      const height = bar.offsetHeight + (lyOpen && overlay ? overlay.offsetHeight + 16 : 0);
+      broadcastMusicLayout({ mode: "bar", height });
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(bar);
+    if (lyOpen && overlay) ro.observe(overlay);
+    return () => ro.disconnect();
+  }, [isDesktop, attached, attachedOpen, collapsed, lyOpen]);
+
   // 移动端适配
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 640px)");
@@ -433,6 +559,50 @@ const autostartDoneRef = useRef(false);
     mq.addEventListener("change", fn);
     return () => mq.removeEventListener("change", fn);
   }, []);
+
+  // 挂靠卡片停靠位置：优先小岛左侧，其次右侧，最后叠在小岛上/下方
+  // 必须放在 early return 之前，保证 hooks 顺序稳定
+  const attachedStyle = useMemo(() => {
+    const vw = viewport.w || (typeof window !== "undefined" ? window.innerWidth : 0);
+    const vh = viewport.h || (typeof window !== "undefined" ? window.innerHeight : 0);
+    if (!vw || !vh) return {};
+    const cardW = 288;
+    const cardH = 176;
+
+    let islandLeft: number;
+    let islandTop: number;
+    let islandW: number;
+    let islandH: number;
+    if (islePos) {
+      islandLeft = islePos.left;
+      islandTop = islePos.top;
+      islandW = islePos.width;
+      islandH = islePos.height;
+    } else {
+      const size = vw < 640 ? 96 : 128;
+      const insetX = vw < 640 ? 16 : 32;
+      const insetY = vw < 640 ? 20 : 32;
+      islandLeft = vw - insetX - size;
+      islandTop = vh - insetY - size;
+      islandW = size;
+      islandH = size;
+    }
+
+    let left = islandLeft - cardW - 20;
+    let top = Math.max(16, Math.min(vh - cardH - 16, islandTop + islandH / 2 - cardH / 2));
+    if (left < 16) {
+      left = islandLeft + islandW + 20;
+      if (left + cardW > vw - 16) {
+        left = Math.max(8, islandLeft);
+        top = Math.max(8, islandTop - cardH - 20);
+        if (top + cardH > vh) top = Math.min(vh - cardH - 8, islandTop + islandH + 16);
+      }
+    }
+    return {
+      left: Math.max(8, Math.min(vw - cardW - 8, left)),
+      top: Math.max(8, Math.min(vh - cardH - 8, top)),
+    };
+  }, [islePos, viewport]);
 
   if (tracks.length === 0) return null;
 
@@ -476,6 +646,7 @@ const autostartDoneRef = useRef(false);
       <button
         type="button"
         aria-label={playing ? "暂停" : "播放"}
+        data-playing={playing}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={togglePlay}
         className="flex h-11 w-11 items-center justify-center rounded-full bg-aurora text-base text-void shadow-[0_0_24px_-4px_rgba(142,162,255,0.8)] transition hover:brightness-110"
@@ -535,7 +706,10 @@ const autostartDoneRef = useRef(false);
 
   const lyricPanel = lyOpen && (
     <div
-      ref={lyricBoxRef}
+      ref={(el) => {
+        lyricBoxRef.current = el;
+        lyricOverlayRef.current = el;
+      }}
       className="animate-music-float absolute bottom-full left-0 right-0 z-10 mb-4 max-h-64 overflow-y-auto [mask-image:linear-gradient(transparent_0%,black_16%,black_84%,transparent_100%)]"
     >
       {companion ? (
@@ -689,34 +863,6 @@ const autostartDoneRef = useRef(false);
     </button>
   );
 
-  // 挂靠卡片停靠位置：优先小岛左侧，其次右侧，最后叠在小岛上/下方
-  const attachedStyle = useMemo(() => {
-    if (typeof window === "undefined") return {};
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const size = vw < 640 ? 96 : 128;
-    const insetX = vw < 640 ? 16 : 32;
-    const insetY = vw < 640 ? 20 : 32;
-    const ix = vw - insetX - size + (islePos?.x ?? 0);
-    const iy = vh - insetY - size + (islePos?.y ?? 0);
-    const cardW = 288;
-    const cardH = 176;
-    let left = ix - cardW - 20;
-    let top = Math.max(16, Math.min(vh - cardH - 16, iy + size / 2 - cardH / 2));
-    if (left < 16) {
-      left = ix + size + 20;
-      if (left + cardW > vw - 16) {
-        left = Math.max(8, ix);
-        top = Math.max(8, iy - cardH - 20);
-        if (top + cardH > vh) top = Math.min(vh - cardH - 8, iy + size + 16);
-      }
-    }
-    return {
-      left: Math.max(8, Math.min(vw - cardW - 8, left)),
-      top: Math.max(8, Math.min(vh - cardH - 8, top)),
-    };
-  }, [islePos]);
-
   const attachedCard = (
     <motion.div
       initial={{ opacity: 0, x: 12, scale: 0.97 }}
@@ -856,10 +1002,15 @@ const autostartDoneRef = useRef(false);
     return attachedCard;
   }
   if (collapsed) {
-    return <div data-music-player className="fixed bottom-4 right-4 z-40">{isleToggle}</div>;
+    return <div data-music-player className="fixed bottom-4 left-4 z-40">{isleToggle}</div>;
   }
   return (
-    <div data-music-player className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-abyss/85 backdrop-blur-xl">
+    <div
+      ref={mobileBarRef}
+      data-music-player
+      data-music-bar
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-abyss/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+    >
       <ProgressBar time={time} dur={dur} onSeek={onSeek} />
       <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-2.5">
         <div className="min-w-0 flex-1">{info}</div>
@@ -883,6 +1034,7 @@ const autostartDoneRef = useRef(false);
           <button
             type="button"
             aria-label={playing ? "暂停" : "播放"}
+            data-playing={playing}
             onClick={togglePlay}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-aurora text-sm text-void shadow-[0_0_20px_-4px_rgba(142,162,255,0.8)]"
           >

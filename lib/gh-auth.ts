@@ -9,7 +9,10 @@ export type AuthState = { token: string; me: Me | null };
 const TOKEN_KEY = "fudao-gh-token";
 const ME_KEY = "fudao-gh-me";
 const LIKES_KEY = "fudao-my-likes";
+const COMMENTS_KEY = "fudao-my-comments";
 const JOINED_KEY = "fudao-joined-at";
+
+export type MyComment = { postId: string; body: string; createdAt: string };
 
 // 由用户创建的 OAuth App 填入（公开值，设备流不需要密钥）
 export const CLIENT_ID: string = "Ov23ligiP94zCiZsA3Gp";
@@ -36,6 +39,39 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
+// 点赞 / 评论 / 登岛日期都按 GitHub 账号隔离；旧设备级数据在首次登录时迁移。
+function accountScope(): string | null {
+  return snapshot.me?.login?.trim().toLowerCase() || null;
+}
+
+function accountKey(base: string): string {
+  return `${base}:${accountScope() ?? "guest"}`;
+}
+
+function readAccountRaw(base: string): string | null {
+  try {
+    const key = accountKey(base);
+    let raw = localStorage.getItem(key);
+    if (raw == null && accountScope()) {
+      const legacy = localStorage.getItem(base);
+      if (legacy != null) {
+        localStorage.setItem(key, legacy);
+        localStorage.removeItem(base);
+        raw = legacy;
+      }
+    }
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+function writeAccountRaw(base: string, value: string) {
+  try {
+    localStorage.setItem(accountKey(base), value);
+  } catch {}
+}
+
 export function subscribeAuth(l: () => void) {
   listeners.add(l);
   return () => listeners.delete(l);
@@ -60,15 +96,19 @@ async function saveToken(token: string) {
   localStorage.setItem(TOKEN_KEY, token);
   const me = await fetchMe(token);
   localStorage.setItem(ME_KEY, JSON.stringify(me));
-  if (!localStorage.getItem(JOINED_KEY)) {
-    localStorage.setItem(JOINED_KEY, new Date().toISOString().slice(0, 10));
+  const joinedKey = `${JOINED_KEY}:${me.login.toLowerCase()}`;
+  if (!localStorage.getItem(joinedKey)) {
+    // 旧版的设备级登岛日期只迁移一次，避免换账号后共享
+    const legacy = localStorage.getItem(JOINED_KEY);
+    localStorage.setItem(joinedKey, legacy ?? new Date().toISOString().slice(0, 10));
+    if (legacy) localStorage.removeItem(JOINED_KEY);
   }
   notify();
 }
 
 export function joinedAt(): string {
   try {
-    return localStorage.getItem(JOINED_KEY) ?? "";
+    return readAccountRaw(JOINED_KEY) ?? "";
   } catch {
     return "";
   }
@@ -156,24 +196,60 @@ export async function saveManualToken(token: string) {
   await saveToken(t);
 }
 
-// 我赞过的动态（记在本地，个人中心展示用）
+// 我赞过的动态（按账号记在本地，个人中心展示用）
 export function recordMyLike(postId: string) {
   try {
-    const arr: string[] = JSON.parse(localStorage.getItem(LIKES_KEY) ?? "[]");
-    if (!arr.includes(postId)) localStorage.setItem(LIKES_KEY, JSON.stringify([postId, ...arr]));
+    const arr = getMyLikes();
+    if (!arr.includes(postId)) writeAccountRaw(LIKES_KEY, JSON.stringify([postId, ...arr]));
   } catch {}
 }
 
 export function unrecordMyLike(postId: string) {
   try {
-    const arr: string[] = JSON.parse(localStorage.getItem(LIKES_KEY) ?? "[]");
-    localStorage.setItem(LIKES_KEY, JSON.stringify(arr.filter((x) => x !== postId)));
+    const arr = getMyLikes();
+    writeAccountRaw(LIKES_KEY, JSON.stringify(arr.filter((x) => x !== postId)));
   } catch {}
 }
 
 export function getMyLikes(): string[] {
   try {
-    return JSON.parse(localStorage.getItem(LIKES_KEY) ?? "[]");
+    const raw = readAccountRaw(LIKES_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as unknown;
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+// 我发过的评论：评论同步到 GitHub 前先从本地立刻回显，也用于小岛活动装饰
+export function recordMyComment(postId: string, body: string) {
+  const text = body.trim().slice(0, 2000);
+  if (!text) return;
+  try {
+    const arr = getMyComments();
+    if (arr.some((c) => c.postId === postId && c.body === text)) return;
+    const next: MyComment[] = [
+      { postId, body: text, createdAt: new Date().toISOString().slice(0, 10) },
+      ...arr,
+    ].slice(0, 80);
+    writeAccountRaw(COMMENTS_KEY, JSON.stringify(next));
+  } catch {}
+}
+
+export function getMyComments(): MyComment[] {
+  try {
+    const raw = readAccountRaw(COMMENTS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as unknown;
+    if (!Array.isArray(arr)) return [];
+    return arr.filter(
+      (c): c is MyComment =>
+        Boolean(c) &&
+        typeof (c as MyComment).postId === "string" &&
+        typeof (c as MyComment).body === "string" &&
+        typeof (c as MyComment).createdAt === "string"
+    );
   } catch {
     return [];
   }

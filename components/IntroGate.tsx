@@ -14,7 +14,7 @@ export default function IntroGate() {
     if (played || reduced) return;
     window.sessionStorage.setItem("fudao-intro", "1");
     setShow(true);
-    const t = setTimeout(() => setShow(false), 3800);
+    const t = setTimeout(() => setShow(false), 4600);
     return () => clearTimeout(t);
   }, []);
 

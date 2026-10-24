@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import IntroGate from "@/components/IntroGate";
 import MusicPlayer from "@/components/MusicPlayer";
+import FollowIsland from "@/components/FollowIsland";
 import PWA from "@/components/PWA";
 
 const SITE = "https://jhaoz833.github.io";
@@ -72,6 +73,7 @@ export default function RootLayout({
         <main className="relative z-0">{children}</main>
         <Footer />
         <MusicPlayer />
+        <FollowIsland />
         <PWA />
       </body>
     </html>

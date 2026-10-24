@@ -1,5 +1,5 @@
 /* 浮岛 Service Worker：静态资源缓存优先，页面网络优先 + 离线回退 */
-const VERSION = "fudao-v1";
+const VERSION = "fudao-v2";
 const CORE = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -26,7 +26,8 @@ self.addEventListener("fetch", (event) => {
   // 页面导航：网络优先，失败回退缓存（离线开壳）
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
+      // no-store：避免浏览器 HTTP 缓存把旧 HTML 交给新构建（旧 chunk 已不存在会白屏）
+      fetch(req, { cache: "no-store" })
         .then((res) => {
           const copy = res.clone();
           caches.open(VERSION).then((c) => c.put(req, copy));

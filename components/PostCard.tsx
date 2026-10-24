@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import type { Post, PostComment, PostThread } from "@/lib/types";
 import { GISCUS } from "@/lib/giscus";
@@ -8,10 +9,12 @@ import {
   authReady,
   getAuthSnapshot,
   getMyLikes,
+  recordMyComment,
   recordMyLike,
   subscribeAuth,
   unrecordMyLike,
 } from "@/lib/gh-auth";
+import IslandBadge from "@/components/IslandBadge";
 import { postComment, setHeart } from "@/lib/gh-api";
 import { cheerIsland } from "@/lib/island-events";
 import { addPending, pendingFor, removePending } from "@/lib/pending";
@@ -59,7 +62,11 @@ export default function PostCard({
         try {
           if (op.kind === "comment" && op.nodeId && op.body) {
             const c = await postComment(auth.token, op.nodeId, op.body);
-            if (!cancelled) setExtra((prev) => [c, ...prev]);
+            recordMyComment(op.postId, op.body);
+            if (!cancelled) {
+              setExtra((prev) => [c, ...prev]);
+              cheerIsland();
+            }
           } else if (op.kind !== "comment") {
             await setHeart(auth.token, op.number, op.login, op.kind);
           }
@@ -140,9 +147,11 @@ export default function PostCard({
     setPosting(true);
     try {
       const c = await postComment(auth.token, thread.nodeId, body);
+      recordMyComment(post.id, body);
       setExtra((prev) => [c, ...prev]);
       setDraft("");
       setLikeError("");
+      cheerIsland();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "评论失败";
       if (msg.includes("scope") || msg.includes("granted")) {
@@ -344,7 +353,16 @@ export default function PostCard({
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-xs text-moon">
-                        <span className="text-star/90">{c.login}</span> · {c.createdAt}
+                        <span className="text-star/90">{c.login}</span>
+                        <Link
+                          href={`/island?u=${encodeURIComponent(c.login)}`}
+                          title={`去 ${c.login} 的岛`}
+                          aria-label={`去 ${c.login} 的岛`}
+                          className="mx-1 inline-flex align-middle opacity-75 transition hover:opacity-100"
+                        >
+                          <IslandBadge key={c.login} login={c.login} size={20} />
+                        </Link>
+                        · {c.createdAt}
                         {c.likes > 0 && <span className="ml-1.5">❤ {c.likes}</span>}
                       </p>
                       <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-star/85">

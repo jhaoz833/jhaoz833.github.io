@@ -28,6 +28,13 @@ body {
   font-family: var(--font-sans);
 }
 
+/* 手机底部播放条是 fixed 的，给正文留出可滚动的余量 */
+@media (max-width: 639px) {
+  body {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+}
+
 ::selection {
   background: rgba(142, 162, 255, 0.35);
 }
@@ -233,8 +240,91 @@ body {
 }
 .isle-beam { animation: isle-glow 3.2s ease-in-out infinite; }
 .isle-window { animation: isle-glow 4s ease-in-out infinite; }
+
+/* 岛灵：视线跟随（CSS 变量由 IslandAvatar 写入）、眨眼、呼吸 */
+.isle-gaze {
+  transform: translate(calc(var(--gaze-x, 0) * 1px), calc(var(--gaze-y, 0) * 1px));
+  transition: transform 0.18s ease-out;
+}
+.isle-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: isle-blink 7s infinite;
+}
+@keyframes isle-blink {
+  0%, 91%, 100% { transform: scaleY(1); }
+  93%, 96% { transform: scaleY(0.08); }
+}
+.isle-spirit {
+  transform-box: view-box;
+  transform-origin: 160px 118px;
+  animation: isle-spirit-bob 5.5s ease-in-out infinite;
+}
+@keyframes isle-spirit-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.isle-zzz { animation: isle-zzz 3.2s ease-in-out infinite; }
+@keyframes isle-zzz {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.85; }
+}
+.isle-streak { animation: isle-glow 4.2s ease-in-out infinite; }
+.isle-celestial { animation: isle-glow 9s ease-in-out infinite; }
+
+/* 季节粒子 */
+.isle-weather-bit {
+  transform-box: fill-box;
+  animation-name: isle-weather-fall;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.isle-weather-spring .isle-weather-bit { animation-name: isle-petal-fall; }
+.isle-weather-autumn .isle-weather-bit { animation-name: isle-leaf-fall; }
+.isle-weather-summer .isle-weather-bit { animation-name: isle-firefly; }
+@keyframes isle-weather-fall {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12% { opacity: 0.7; }
+  80% { opacity: 0.5; }
+  100% { transform: translate(10px, 26px); opacity: 0; }
+}
+@keyframes isle-petal-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  14% { opacity: 0.65; }
+  100% { transform: translate(-14px, 28px) rotate(180deg); opacity: 0; }
+}
+@keyframes isle-leaf-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  16% { opacity: 0.6; }
+  100% { transform: translate(16px, 28px) rotate(120deg); opacity: 0; }
+}
+@keyframes isle-firefly {
+  0%, 100% { transform: translateY(0); opacity: 0.25; }
+  50% { transform: translateY(-5px); opacity: 0.9; }
+}
+
+/* 听歌时的小岛呼吸与飘音符 */
+.island-beat {
+  transform: scale(calc(1 + var(--island-beat, 0) * 0.035));
+  transform-origin: 50% 78%;
+}
+.isle-note {
+  animation: isle-note-rise 2.6s ease-out infinite;
+}
+.isle-note:nth-child(2) { animation-delay: 0.9s; }
+.isle-note:nth-child(3) { animation-delay: 1.7s; }
+@keyframes isle-note-rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+  18% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(7px, -28px) scale(1.05); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .isle-orbit, .isle-pet, .isle-cloud, .isle-beam, .isle-window { animation: none; }
+  .isle-orbit, .isle-pet, .isle-cloud, .isle-beam, .isle-window,
+  .isle-eyes, .isle-spirit, .isle-zzz, .isle-streak, .isle-celestial,
+  .isle-weather-bit, .isle-note, .animate-float-slow { animation: none; }
+  .isle-gaze { transition: none; }
+  .island-beat { transform: none; }
 }
 
 ::-webkit-scrollbar {
