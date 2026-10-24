@@ -6,7 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useMotionValue, useReducedMotion } from "motion/react";
 import IslandAvatar from "@/components/IslandAvatar";
-import { getAuthSnapshot, getMyComments, getMyLikes, subscribeAuth } from "@/lib/gh-auth";
+import IslandFortune from "@/components/IslandFortune";
+import { getAuthServerSnapshot, getAuthSnapshot, getMyComments, getMyLikes, subscribeAuth } from "@/lib/gh-auth";
 import {
   defaultIslandConfig,
   loadFollow,
@@ -26,15 +27,19 @@ import {
   broadcastIslandMoved,
   broadcastIslandPresence,
   onIslandCheer,
+  onIslandEasterEgg,
   onIslandLyric,
   onIslandMusicState,
   onIslandMusicVisible,
   onMusicLayout,
+  onWishMade,
+  openIslandWish,
   toggleIslandMusic,
   toggleIslandPlayback,
   type IslandLyric,
   type IslandMusicState,
 } from "@/lib/island-events";
+import { wishCount } from "@/lib/island-wishes";
 import { useOnlineCount } from "@/lib/use-online";
 
 const BURST_STARS = 10;
@@ -139,7 +144,7 @@ function welcomeLine(daysSince: number, streak: number): string {
 // 心情由点赞/评论/抚摸/久置驱动；岛灵会看向指针、眨眼；
 // 装修/位置/心情记忆按 GitHub 账号存在本机；播放器挂靠时让出底部空间。
 export default function FollowIsland() {
-  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthServerSnapshot);
   const login = auth.me?.login ?? null;
   const pathname = usePathname();
   const online = useOnlineCount();
@@ -158,6 +163,7 @@ export default function FollowIsland() {
   const [mood, setMood] = useState<IslandMood>("happy");
   const [murmur, setMurmur] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [fortuneOpen, setFortuneOpen] = useState(false);
   const [burst, setBurst] = useState(0);
   const [cheer, setCheer] = useState(0);
   const [dragSpark, setDragSpark] = useState(0);
@@ -171,6 +177,8 @@ export default function FollowIsland() {
   const [likes, setLikes] = useState(0);
   const [comments, setComments] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [wishes, setWishes] = useState(0);
+  const [secret, setSecret] = useState(false);
   const [refresh, setRefresh] = useState(0);
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -186,6 +194,7 @@ export default function FollowIsland() {
   const keyboardOpenRef = useRef(false);
   const initializedRef = useRef<string | null>(null);
   const greetingUntilRef = useRef(0);
+  const secretTimerRef = useRef<number | null>(null);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -213,6 +222,8 @@ export default function FollowIsland() {
       setCfg(null);
       setFollowOn(false);
       setMusicEnabled(false);
+      setWishes(0);
+      setSecret(false);
       initializedRef.current = null;
       x.set(0);
       y.set(0);
@@ -223,6 +234,7 @@ export default function FollowIsland() {
     setCfg(next);
     setFollowOn(loadFollow(login));
     setMusicEnabled(loadIslandMusic(login));
+    setWishes(wishCount(login));
     const pos = loadIslandPos(login);
     x.set(pos?.x ?? 0);
     y.set(pos?.y ?? 0);
@@ -246,7 +258,10 @@ export default function FollowIsland() {
   useEffect(() => {
     broadcastIslandPresence({ visible, scope });
     if (visible) lastInteractionRef.current = Date.now();
-    else setMenuOpen(false);
+    else {
+      setMenuOpen(false);
+      setFortuneOpen(false);
+    }
   }, [visible, scope]);
 
   // 播放器状态 / 歌词 / 底部占位
@@ -324,6 +339,45 @@ export default function FollowIsland() {
         }
       }),
     [changeMood, noteInteraction]
+  );
+
+  // 许下一个星愿 → 岛上多一颗许愿星，岛灵回应
+  useEffect(
+    () =>
+      onWishMade((payload) => {
+        noteInteraction();
+        setWishes(payload.count);
+        changeMood("happy");
+        setBurst((v) => v + 1);
+        if (!cfgRef.current?.quiet && !lyricRef.current) {
+          setMurmur("听到了，流星会把愿望带远");
+        }
+      }),
+    [changeMood, noteInteraction]
+  );
+
+  // 隐藏彩蛋：稀有极光形态 30 秒
+  useEffect(
+    () =>
+      onIslandEasterEgg(() => {
+        noteInteraction();
+        setSecret(true);
+        changeMood("happy");
+        setCheer((v) => v + 1);
+        if (!cfgRef.current?.quiet && !lyricRef.current) {
+          setMurmur("你发现了岛的另一面");
+        }
+        if (secretTimerRef.current) clearTimeout(secretTimerRef.current);
+        secretTimerRef.current = window.setTimeout(() => setSecret(false), 30_000);
+      }),
+    [changeMood, noteInteraction]
+  );
+
+  useEffect(
+    () => () => {
+      if (secretTimerRef.current) clearTimeout(secretTimerRef.current);
+    },
+    []
   );
 
   const updatePlacements = useCallback(() => {
@@ -488,6 +542,18 @@ export default function FollowIsland() {
     if (!cfgRef.current?.quiet && !lyricRef.current) setMurmur(pick(MURMURS.poke));
   };
 
+  const onFortune = () => {
+    noteInteraction();
+    closeMenu();
+    setFortuneOpen(true);
+  };
+
+  const onWish = () => {
+    noteInteraction();
+    closeMenu();
+    openIslandWish();
+  };
+
   const onMusic = () => {
     noteInteraction();
     closeMenu();
@@ -558,6 +624,7 @@ export default function FollowIsland() {
     : MOOD_LABEL[mood];
 
   return (
+    <>
     <AnimatePresence>
       {cfg && visible && (
         <motion.div
@@ -634,6 +701,8 @@ export default function FollowIsland() {
                         likes={likes}
                         comments={comments}
                         streak={streak}
+                        wishes={wishes}
+                        rare={secret}
                       />
                     </div>
                   </div>
@@ -730,6 +799,23 @@ export default function FollowIsland() {
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs text-moon transition hover:bg-white/10 hover:text-star"
                   >
                     <span>{cfg.quiet ? "✦" : "◌"}</span> {cfg.quiet ? "说说话" : "静一静"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onFortune}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs text-moon transition hover:bg-white/10 hover:text-star"
+                  >
+                    <span>✦</span> 今日岛签
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onWish}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs text-moon transition hover:bg-white/10 hover:text-star"
+                  >
+                    <span>✦</span> 星愿
+                    {wishes > 0 && (
+                      <span className="ml-auto text-[9px] text-aurora">{wishes}</span>
+                    )}
                   </button>
                   {musicEnabled ? (
                     <button
@@ -847,5 +933,23 @@ export default function FollowIsland() {
         </motion.div>
       )}
     </AnimatePresence>
+    <AnimatePresence>
+      {fortuneOpen && cfg && login && (
+        <motion.div
+          key="fortune"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50"
+        >
+          <IslandFortune
+            login={login}
+            islandName={cfg.name || undefined}
+            onClose={() => setFortuneOpen(false)}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }

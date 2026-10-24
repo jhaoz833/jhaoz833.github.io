@@ -72,19 +72,22 @@ export default function Starfield() {
 
     // 远层·银河星尘带：一次性预渲染到离屏画布（右上→左下斜跨），每帧仅一次 drawImage
     const buildGalaxy = () => {
-      galaxy = document.createElement("canvas");
-      galaxy.width = canvas.width;
-      galaxy.height = canvas.height + 120 * dpr; // 底部留视差余量
-      const g = galaxy.getContext("2d");
-      if (!g) return;
       const W = canvas.width;
       const H = canvas.height;
+      if (W <= 0 || H <= 0) return;
+      const len = Math.hypot(-W * 1.06, H * 0.86);
+      if (!Number.isFinite(len) || len <= 0) return;
+      galaxy = document.createElement("canvas");
+      galaxy.width = W;
+      galaxy.height = H + 120 * dpr; // 底部留视差余量
+      const g = galaxy.getContext("2d");
+      if (!g) return;
       const ox = W * 1.02;
       const oy = -H * 0.08 + 60 * dpr;
       const dx = -W * 1.06;
       const dy = H * 0.86;
-      const nx = -dy / Math.hypot(dx, dy);
-      const ny = dx / Math.hypot(dx, dy);
+      const nx = -dy / len;
+      const ny = dx / len;
 
       // 柔雾：沿带心的几团大光晕
       for (let i = 0; i < 7; i++) {
@@ -216,8 +219,11 @@ export default function Starfield() {
     };
 
     const resize = () => {
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
+      // 隐藏标签页/零尺寸视口下 innerWidth 可能为 0，直接乘 dpr 会得到 0 并让后续渐变坐标变成 NaN
+      const w = Math.max(1, Math.floor(window.innerWidth));
+      const h = Math.max(1, Math.floor(window.innerHeight));
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
       buildStars();
       buildGalaxy();
     };

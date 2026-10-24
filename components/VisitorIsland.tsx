@@ -10,7 +10,7 @@ import {
   loadIslandConfig,
   type IslandConfig,
 } from "@/lib/island-store";
-import { getAuthSnapshot, subscribeAuth } from "@/lib/gh-auth";
+import { getAuthServerSnapshot, getAuthSnapshot, subscribeAuth } from "@/lib/gh-auth";
 import { useOnlineCount } from "@/lib/use-online";
 import { useStars } from "@/lib/use-stars";
 
@@ -24,7 +24,7 @@ export default function VisitorIsland({
   name?: string;
 }) {
   const online = useOnlineCount();
-  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthServerSnapshot);
   const isOwner = Boolean(
     login && auth.me?.login?.toLowerCase() === login.toLowerCase()
   );

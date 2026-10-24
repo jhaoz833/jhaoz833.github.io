@@ -75,6 +75,8 @@ export default function IslandAvatar({
   likes = 0,
   comments = 0,
   streak = 0,
+  wishes = 0,
+  rare = false,
   svgRef,
 }: {
   config: IslandConfig;
@@ -84,6 +86,8 @@ export default function IslandAvatar({
   likes?: number;
   comments?: number;
   streak?: number;
+  wishes?: number;
+  rare?: boolean;
   svgRef?: React.Ref<SVGSVGElement>;
 }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -190,6 +194,7 @@ export default function IslandAvatar({
   const visitorCount = Math.min(5, Math.max(0, visitors));
   const starCount = Math.min(8, Math.max(0, likes));
   const flagCount = Math.min(3, Math.max(0, comments));
+  const wishCount = Math.min(3, Math.max(0, wishes));
 
   return (
     <svg
@@ -399,6 +404,29 @@ export default function IslandAvatar({
         <g className="isle-streak" aria-hidden>
           <ellipse cx="160" cy="91" rx="17" ry="4" fill="none" stroke={p.accent} strokeWidth="1" strokeDasharray="2 4" opacity="0.55" />
           <Sparkle x={160} y={84} s={4.6} fill={p.accent} op={0.85} />
+        </g>
+      )}
+
+      {/* 星愿：每许一个愿，岛上多一颗青蓝色的小星 */}
+      {wishCount > 0 && (
+        <g aria-hidden>
+          {Array.from({ length: wishCount }).map((_, i) => (
+            <g key={`wish-${i}`} className="isle-wish" style={{ animationDelay: `${i * 0.9}s` }}>
+              <Sparkle x={88 + i * 15} y={72 - (i % 2) * 8} s={3.4} fill="#6fd3ff" op={0.9} />
+              <circle cx={88 + i * 15} cy={72 - (i % 2) * 8} r={1} fill="#e9ecff" opacity={0.75} />
+            </g>
+          ))}
+        </g>
+      )}
+
+      {/* 隐藏彩蛋：稀有极光形态 */}
+      {rare && (
+        <g className="isle-rare" aria-hidden>
+          <ellipse cx="160" cy="116" rx="132" ry="73" fill="none" stroke={p.accent} strokeWidth="1" strokeDasharray="1 6" opacity="0.45" />
+          <ellipse cx="160" cy="116" rx="143" ry="83" fill="none" stroke={glow} strokeWidth="1.4" opacity="0.38" />
+          <path d="M282 60 Q300 48 314 58" fill="none" stroke={p.accent} strokeWidth="1.3" strokeLinecap="round" opacity="0.75" />
+          <Sparkle x={314} y={58} s={4.2} fill={p.accent} op={0.9} />
+          <Sparkle x={300} y={50} s={2} fill="#e9ecff" op={0.7} />
         </g>
       )}
 

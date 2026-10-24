@@ -271,6 +271,16 @@ body {
 }
 .isle-streak { animation: isle-glow 4.2s ease-in-out infinite; }
 .isle-celestial { animation: isle-glow 9s ease-in-out infinite; }
+.isle-wish { animation: isle-wish-twinkle 4.4s ease-in-out infinite; }
+@keyframes isle-wish-twinkle {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+.isle-rare { animation: isle-rare-glow 5.2s ease-in-out infinite; }
+@keyframes isle-rare-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
 
 /* 季节粒子 */
 .isle-weather-bit {
@@ -319,12 +329,53 @@ body {
   100% { opacity: 0; transform: translate(7px, -28px) scale(1.05); }
 }
 
+/* 流星雨：真实流星雨夜 / 隐藏彩蛋时全站划过 */
+.meteor {
+  animation-name: meteor-fall;
+  animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+  opacity: 0;
+}
+.meteor-tail {
+  position: absolute;
+  right: 6px;
+  top: 14px;
+  width: 130px;
+  height: 1.5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(233, 236, 255, 0), rgba(233, 236, 255, 0.85));
+  transform: rotate(-32deg);
+  transform-origin: right center;
+  filter: drop-shadow(0 0 6px rgba(142, 162, 255, 0.7));
+}
+.meteor-head {
+  position: absolute;
+  right: 4px;
+  top: 10px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 10px 3px rgba(142, 162, 255, 0.8),
+    0 0 24px 8px rgba(245, 217, 160, 0.25);
+}
+@keyframes meteor-fall {
+  0% { transform: translate3d(40px, -40px, 0); opacity: 0; }
+  8% { opacity: 1; }
+  75% { opacity: 0.9; }
+  100% { transform: translate3d(-72vw, 58vh, 0); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .isle-orbit, .isle-pet, .isle-cloud, .isle-beam, .isle-window,
   .isle-eyes, .isle-spirit, .isle-zzz, .isle-streak, .isle-celestial,
-  .isle-weather-bit, .isle-note, .animate-float-slow { animation: none; }
+  .isle-wish, .isle-rare, .isle-weather-bit, .isle-note, .animate-float-slow,
+  .meteor { animation: none; }
   .isle-gaze { transition: none; }
   .island-beat { transform: none; }
+  .meteor { display: none; }
 }
 
 ::-webkit-scrollbar {

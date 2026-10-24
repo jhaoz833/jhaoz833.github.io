@@ -15,6 +15,9 @@ const MUSIC_STATE_EVENT = "fudao:island-music-state";
 const LYRIC_EVENT = "fudao:island-lyric";
 const PLAYBACK_TOGGLE_EVENT = "fudao:island-playback-toggle";
 const MUSIC_LAYOUT_EVENT = "fudao:island-music-layout";
+const OPEN_WISH_EVENT = "fudao:island-wish-open";
+const WISH_MADE_EVENT = "fudao:island-wish-made";
+const EASTER_EGG_EVENT = "fudao:island-easter-egg";
 
 export type IslandPresence = { visible: boolean; scope: "moments" | "all" };
 export type IslandRect = {
@@ -157,6 +160,45 @@ export function toggleIslandPlayback() {
 export function onIslandPlaybackToggle(cb: () => void) {
   window.addEventListener(PLAYBACK_TOGGLE_EVENT, cb);
   return () => window.removeEventListener(PLAYBACK_TOGGLE_EVENT, cb);
+}
+
+export type WishMade = { text: string; count: number };
+
+/** 打开星愿弹层（跟随岛菜单/装修面板共用） */
+export function openIslandWish() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(OPEN_WISH_EVENT));
+  }
+}
+
+export function onOpenIslandWish(cb: () => void) {
+  window.addEventListener(OPEN_WISH_EVENT, cb);
+  return () => window.removeEventListener(OPEN_WISH_EVENT, cb);
+}
+
+/** 愿望已写入本机 → 岛灵回应、岛上许愿星更新 */
+export function broadcastWishMade(payload: WishMade) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(WISH_MADE_EVENT, { detail: payload }));
+  }
+}
+
+export function onWishMade(cb: (payload: WishMade) => void) {
+  const handler = (e: Event) => cb((e as CustomEvent).detail as WishMade);
+  window.addEventListener(WISH_MADE_EVENT, handler);
+  return () => window.removeEventListener(WISH_MADE_EVENT, handler);
+}
+
+/** 隐藏彩蛋：让跟随岛进入稀有形态 */
+export function triggerIslandEasterEgg() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(EASTER_EGG_EVENT));
+  }
+}
+
+export function onIslandEasterEgg(cb: () => void) {
+  window.addEventListener(EASTER_EGG_EVENT, cb);
+  return () => window.removeEventListener(EASTER_EGG_EVENT, cb);
 }
 
 let lastMusicLayout: MusicLayout = { mode: "hidden", height: 0 };

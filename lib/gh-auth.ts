@@ -81,6 +81,12 @@ export function getAuthSnapshot() {
   return snapshot;
 }
 
+// 服务端/水合阶段必须使用稳定空态，避免本机 token 让首屏 DOM 与服务端不一致
+const EMPTY_AUTH: AuthState = { token: "", me: null };
+export function getAuthServerSnapshot(): AuthState {
+  return EMPTY_AUTH;
+}
+
 export function useAuth(): AuthState {
   // 组件里配合 useSyncExternalStore(subscribeAuth, getAuthSnapshot) 使用
   return getAuthSnapshot();

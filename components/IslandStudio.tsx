@@ -1,7 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import IslandAvatar from "@/components/IslandAvatar";
+import IslandFortune from "@/components/IslandFortune";
+import { onWishMade, openIslandWish } from "@/lib/island-events";
+import { loadWishes, type IslandWish } from "@/lib/island-wishes";
 import {
   defaultIslandConfig,
   encodeIslandCode,
@@ -76,7 +79,11 @@ export default function IslandStudio({ seed }: { seed: string }) {
   const [streak] = useState(() => recordIslandVisit(seed).streak);
   const [copied, setCopied] = useState<"code" | "link" | "">("");
   const [posterBusy, setPosterBusy] = useState(false);
+  const [fortuneOpen, setFortuneOpen] = useState(false);
+  const [wishes, setWishes] = useState<IslandWish[]>(() => loadWishes(seed));
   const posterRef = useRef<SVGSVGElement | null>(null);
+
+  useEffect(() => onWishMade(() => setWishes(loadWishes(seed))), [seed]);
 
   const update = (next: IslandConfig) => {
     setCfg(next);
@@ -187,6 +194,7 @@ export default function IslandStudio({ seed }: { seed: string }) {
   };
 
   return (
+    <>
     <section className="mt-8">
       <h2 className="mb-3 text-sm font-semibold tracking-widest text-star">✦ 我的小岛</h2>
       <div className="glass rounded-3xl p-5">
@@ -199,6 +207,7 @@ export default function IslandStudio({ seed }: { seed: string }) {
             likes={likes}
             comments={comments}
             streak={streak}
+            wishes={wishes.length}
             svgRef={posterRef}
           />
         </div>
@@ -397,6 +406,30 @@ export default function IslandStudio({ seed }: { seed: string }) {
             >
               {posterBusy ? "生成中…" : "下载明信片"}
             </button>
+            <button
+              type="button"
+              onClick={() => setFortuneOpen(true)}
+              className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1.5 text-[11px] text-gold transition hover:bg-gold/20"
+            >
+              今日岛签
+            </button>
+          </div>
+
+          <div className="mt-3 rounded-xl bg-aurora/5 p-3 ring-1 ring-aurora/15">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-star">星愿瓶</p>
+              <span className="text-[10px] text-moon">{wishes.length} 颗流星记得</span>
+            </div>
+            <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-moon/70">
+              {wishes[0]?.text ?? "还没有许愿。等一场流星雨，或现在写一个。"}
+            </p>
+            <button
+              type="button"
+              onClick={() => openIslandWish()}
+              className="mt-2 rounded-full border border-aurora/30 bg-aurora/10 px-3 py-1 text-[11px] text-aurora transition hover:bg-aurora/20"
+            >
+              写一个星愿
+            </button>
           </div>
         </div>
 
@@ -412,5 +445,13 @@ export default function IslandStudio({ seed }: { seed: string }) {
         </div>
       </div>
     </section>
+    {fortuneOpen && (
+      <IslandFortune
+        login={seed}
+        islandName={cfg.name || undefined}
+        onClose={() => setFortuneOpen(false)}
+      />
+    )}
+    </>
   );
 }

@@ -11,6 +11,7 @@ import IslandVisitors from "@/components/IslandVisitors";
 import VisitorIsland from "@/components/VisitorIsland";
 import {
   authReady,
+  getAuthServerSnapshot,
   getAuthSnapshot,
   joinedAt,
   logout,
@@ -34,7 +35,7 @@ export default function IslandPageClient() {
   const visitName = searchParams.get("n") ?? undefined;
   const visitorMode = Boolean(visitLogin || visitCode);
 
-  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthServerSnapshot);
   const [mounted, setMounted] = useState(false);
   const [likes, setLikes] = useState<string[]>([]);
 

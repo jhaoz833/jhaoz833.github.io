@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { authReady, getAuthSnapshot, subscribeAuth } from "@/lib/gh-auth";
+import { authReady, getAuthServerSnapshot, getAuthSnapshot, subscribeAuth } from "@/lib/gh-auth";
 import { communityReady } from "@/lib/site";
 import { createCommunityPost } from "@/lib/gh-api";
 import { useSyncExternalStore } from "react";
 
 // 社区动态发布框：登录者可在动态流顶部直接发言
 export default function PostComposer() {
-  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthServerSnapshot);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);

@@ -7,6 +7,7 @@ import type { Post, PostComment, PostThread } from "@/lib/types";
 import { GISCUS } from "@/lib/giscus";
 import {
   authReady,
+  getAuthServerSnapshot,
   getAuthSnapshot,
   getMyLikes,
   recordMyComment,
@@ -42,7 +43,7 @@ export default function PostCard({
   const [posting, setPosting] = useState(false);
   const [extra, setExtra] = useState<PostComment[]>([]);
   const [likeError, setLikeError] = useState("");
-  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthServerSnapshot);
   const loggedIn = authReady() && Boolean(auth.token);
 
   // 真实点赞数 = 数据基线 + 讨论帖表情数（每小时同步）+ 本次会话的即时变化
